@@ -5,6 +5,7 @@ dist/
 out/
 coverage/
 .vercel/
+*.tsbuildinfo
 
 # Environment and secrets
 .env
