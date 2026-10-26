@@ -37,7 +37,11 @@ export type NearbyStoreRecord = {
   distance_m: number;
 };
 
-type CacheState = { fetchStatus: "idle" | "fetching" | "succeeded" | "failed"; expiresAt: string | null };
+type CacheState = {
+  fetchStatus: "idle" | "fetching" | "succeeded" | "failed";
+  expiresAt: string | null;
+  lastFetchedAt?: string | null;
+};
 type SearchClaim = { shouldFetch: boolean; leaseToken: string | null; hasStaleData: boolean };
 
 export type NearbyRepository = {
@@ -67,6 +71,7 @@ function groupStores(
   malls: MallCandidate[],
   point: GeoPoint,
   cacheStatus: CacheStatus,
+  cachedAt?: string | null,
 ): NearbyResponse {
   const currentCandidate = resolveCurrentMall(point, malls);
   const currentMall: MallSummary | null = currentCandidate
@@ -132,7 +137,12 @@ function groupStores(
     });
   }
 
-  return { currentMall, groups, cacheStatus };
+  return {
+    currentMall,
+    groups,
+    cacheStatus,
+    ...(cachedAt ? { cachedAt } : {}),
+  };
 }
 
 async function waitForWinner(
@@ -147,7 +157,7 @@ async function waitForWinner(
     if (isFresh(state, deps.now())) {
       const rows = await deps.repository.getNearby(point);
       const malls = await deps.repository.listMallCandidates();
-      return groupStores(rows, malls, point, "refreshed");
+      return groupStores(rows, malls, point, "refreshed", state?.lastFetchedAt);
     }
   }
 
@@ -167,7 +177,7 @@ export function createNearbyService(deps: NearbyDependencies) {
 
     if (isFresh(cache, deps.now())) {
       const malls = await deps.repository.listMallCandidates();
-      return groupStores(initialRows, malls, input, "fresh");
+      return groupStores(initialRows, malls, input, "fresh", cache?.lastFetchedAt);
     }
 
     if (cache?.fetchStatus === "fetching") {
@@ -203,7 +213,7 @@ export function createNearbyService(deps: NearbyDependencies) {
       await deps.repository.finishSearchArea(claim.leaseToken, 0, false);
       if (initialRows.length > 0) {
         const malls = await deps.repository.listMallCandidates();
-        return groupStores(initialRows, malls, input, "stale");
+        return groupStores(initialRows, malls, input, "stale", cache?.lastFetchedAt);
       }
       throw new NearbyServiceError("PROVIDER_UNAVAILABLE", "暂时无法刷新附近门店", true);
     }
@@ -254,11 +264,17 @@ function createRepository(): NearbyRepository {
       activeCellId = cellId;
       const { data, error } = await client
         .from("search_areas")
-        .select("fetch_status,expires_at")
+        .select("fetch_status,expires_at,last_fetched_at")
         .eq("cell_id", cellId)
         .maybeSingle();
       if (error) throw error;
-      return data ? { fetchStatus: data.fetch_status, expiresAt: data.expires_at } : null;
+      return data
+        ? {
+            fetchStatus: data.fetch_status,
+            expiresAt: data.expires_at,
+            lastFetchedAt: data.last_fetched_at,
+          }
+        : null;
     },
     async claimSearchArea(cellId, center, now) {
       activeCellId = cellId;

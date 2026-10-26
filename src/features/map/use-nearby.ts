@@ -1,22 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 
+import { useLocation } from "@/features/location/use-location";
 import type { GeoPoint } from "@/lib/geo/coordinates";
+import { getSearchCell } from "@/lib/geo/grid";
 
 import { fetchNearby, MapApiError } from "./api";
 import { initialMapState, mapReducer } from "./reducer";
 
 export function useNearby() {
   const [state, dispatch] = useReducer(mapReducer, initialMapState);
+  const [mapCenter, setMapCenter] = useState<GeoPoint | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
-  const lastPointRef = useRef<GeoPoint | null>(null);
 
   const load = useCallback(async (point: GeoPoint) => {
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
-    lastPointRef.current = point;
+    setMapCenter(getSearchCell(point).center);
     dispatch({ type: "LOAD_START" });
 
     try {
@@ -32,26 +34,19 @@ export function useNearby() {
     }
   }, []);
 
+  const onLocated = useCallback((point: GeoPoint) => void load(point), [load]);
+  const onDenied = useCallback(() => dispatch({ type: "LOCATION_DENIED" }), []);
+  const onUnavailable = useCallback(() => dispatch({ type: "LOCATION_UNAVAILABLE" }), []);
+  const { requestLocation: requestBrowserLocation } = useLocation({ onLocated, onDenied, onUnavailable });
+
   const requestLocation = useCallback(() => {
     dispatch({ type: "REQUEST_LOCATION" });
-    if (!("geolocation" in navigator)) {
-      dispatch({ type: "LOCATION_UNAVAILABLE" });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => void load({ lng: position.coords.longitude, lat: position.coords.latitude }),
-      (error) =>
-        dispatch({ type: error.code === error.PERMISSION_DENIED ? "LOCATION_DENIED" : "LOCATION_UNAVAILABLE" }),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 },
-    );
-  }, [load]);
+    requestBrowserLocation();
+  }, [requestBrowserLocation]);
 
-  const retry = useCallback(() => {
-    if (lastPointRef.current) void load(lastPointRef.current);
-    else requestLocation();
-  }, [load, requestLocation]);
+  const retry = useCallback(() => requestLocation(), [requestLocation]);
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  return { state, dispatch, requestLocation, retry };
+  return { state, dispatch, requestLocation, retry, loadAt: load, mapCenter };
 }

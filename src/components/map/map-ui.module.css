@@ -145,23 +145,27 @@
 }
 
 .drawer {
+  position: absolute;
   z-index: 4;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
-  flex: none;
+  height: min(76svh, 680px);
   flex-direction: column;
   overflow: hidden;
   border-radius: 18px 18px 0 0;
   background: var(--paper);
   box-shadow: 0 -12px 32px rgb(58 46 34 / 13%);
-  transition: height 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .drawer[data-state="collapsed"] {
-  height: min(292px, 40svh);
+  transform: translateY(calc(100% - min(292px, 40svh)));
 }
 
 .drawer[data-state="expanded"] {
-  height: min(76svh, 680px);
+  transform: translateY(0);
 }
 
 .drawerHandle {

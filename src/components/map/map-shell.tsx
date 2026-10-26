@@ -3,6 +3,7 @@
 import type { StoreGroup } from "@/features/nearby/contracts";
 import type { MapFilter } from "@/features/map/reducer";
 import type { GeoPoint } from "@/lib/geo/coordinates";
+import { filterStoreGroups } from "@/features/map/selectors";
 
 import { StoreDrawer } from "../stores/store-drawer";
 import styles from "./map-ui.module.css";
@@ -57,7 +58,7 @@ export function MapShell({
       <StoreMap
         styleUrl={styleUrl}
         userPoint={userPoint}
-        groups={groups}
+        groups={filterStoreGroups(groups, filter)}
         selectedId={selectedId}
         onSelectGroup={selectGroup}
         onSelectStore={selectStore}

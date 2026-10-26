@@ -30,6 +30,7 @@ export type NearbyResponse = {
   currentMall: MallSummary | null;
   groups: StoreGroup[];
   cacheStatus: CacheStatus;
+  cachedAt?: string;
 };
 
 export type NearbyErrorCode =
