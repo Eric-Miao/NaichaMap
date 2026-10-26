@@ -1,0 +1,398 @@
+.shell {
+  --ink: #29251f;
+  --muted: #655d53;
+  --paper: #fffdf9;
+  --ground: #eee8dd;
+  --accent: #6b4a2b;
+  --accent-soft: #eadfce;
+  position: relative;
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ground);
+  color: var(--ink);
+}
+
+.topbar {
+  z-index: 3;
+  flex: none;
+  background: var(--paper);
+  padding: max(16px, env(safe-area-inset-top)) 16px 14px;
+  box-shadow: 0 8px 24px rgb(62 49 36 / 8%);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: clamp(1.2rem, 5vw, 1.55rem);
+  font-weight: 850;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.topbar p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.mapFrame {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  background-color: #e2ddd2;
+  background-image:
+    linear-gradient(28deg, transparent 47%, rgb(255 253 249 / 82%) 48%, rgb(255 253 249 / 82%) 51%, transparent 52%),
+    linear-gradient(112deg, transparent 46%, rgb(255 253 249 / 66%) 47%, rgb(255 253 249 / 66%) 51%, transparent 52%);
+  background-size: 130px 100px, 180px 150px;
+}
+
+.mapCanvas {
+  position: absolute;
+  inset: 0;
+}
+
+.markerLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.marker,
+.mallMarker,
+.userMarker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+.mallMarker,
+.marker {
+  min-height: 44px;
+  border: 0;
+  color: #fffdf9;
+  box-shadow: 0 8px 20px rgb(55 39 25 / 22%);
+  cursor: pointer;
+  font: inherit;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
+}
+
+.mallMarker {
+  display: grid;
+  max-width: 154px;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  border-radius: 14px;
+  background: var(--accent);
+  padding: 8px 10px 8px 12px;
+  text-align: left;
+}
+
+.mallMarker strong {
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mallMarker span {
+  display: grid;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 18%);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.marker {
+  display: grid;
+  width: 44px;
+  place-items: center;
+  border-radius: 50% 50% 50% 10px;
+  background: #7c5533;
+  font-size: 0.72rem;
+  font-weight: 850;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.marker > span {
+  transform: rotate(45deg);
+}
+
+.selected {
+  z-index: 3;
+  box-shadow: 0 0 0 4px rgb(255 253 249 / 88%), 0 10px 26px rgb(55 39 25 / 30%);
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+.marker.selected {
+  transform: translate(-50%, -50%) rotate(-45deg) scale(1.08);
+}
+
+.userMarker {
+  width: 18px;
+  height: 18px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: #42776f;
+  box-shadow: 0 4px 12px rgb(31 68 64 / 30%);
+}
+
+.drawer {
+  z-index: 4;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 18px 18px 0 0;
+  background: var(--paper);
+  box-shadow: 0 -12px 32px rgb(58 46 34 / 13%);
+  transition: height 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.drawer[data-state="collapsed"] {
+  height: min(292px, 40svh);
+}
+
+.drawer[data-state="expanded"] {
+  height: min(76svh, 680px);
+}
+
+.drawerHandle {
+  display: grid;
+  min-height: 44px;
+  width: 100%;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.drawerHandle::before {
+  width: 42px;
+  height: 5px;
+  border-radius: 999px;
+  background: #c9c0b4;
+  content: "";
+}
+
+.drawerHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px 10px;
+}
+
+.drawerHeading h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.drawerHeading span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabs {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: flex;
+  flex: none;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 16px 12px;
+  background: var(--paper);
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  min-height: 44px;
+  flex: none;
+  border: 0;
+  border-radius: 999px;
+  background: #eee8de;
+  color: #4d453c;
+  padding: 0 15px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.tab[aria-selected="true"] {
+  background: var(--accent);
+  color: #fffdf9;
+}
+
+.list {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px max(20px, env(safe-area-inset-bottom));
+  scrollbar-color: #b6a999 transparent;
+  scrollbar-width: thin;
+}
+
+.group + .group {
+  margin-top: 16px;
+}
+
+.groupHeader {
+  display: flex;
+  min-height: 44px;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 4px 2px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.groupHeader strong {
+  font-size: 0.9rem;
+}
+
+.groupHeader span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.storeCard {
+  display: grid;
+  min-height: 68px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid #e8e1d7;
+  padding: 8px 0;
+}
+
+.storeSelect {
+  display: grid;
+  min-height: 48px;
+  min-width: 0;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.brandTile {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--accent-soft);
+  color: #5c3e21;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.storeCopy {
+  min-width: 0;
+}
+
+.storeCopy strong,
+.storeCopy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storeCopy strong {
+  font-size: 0.84rem;
+}
+
+.storeCopy span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.copyButton {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ink);
+  color: #fff;
+  padding: 0 11px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.toast {
+  position: fixed;
+  z-index: 20;
+  right: 16px;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  max-width: calc(100vw - 32px);
+  border-radius: 14px;
+  background: #29251f;
+  color: #fff;
+  padding: 12px 16px;
+  box-shadow: 0 12px 32px rgb(41 37 31 / 24%);
+  font-size: 0.8rem;
+}
+
+.tab:focus-visible,
+.drawerHandle:focus-visible,
+.groupHeader:focus-visible,
+.storeSelect:focus-visible,
+.copyButton:focus-visible,
+.marker:focus-visible,
+.mallMarker:focus-visible {
+  outline: 3px solid #3f756d;
+  outline-offset: 3px;
+}
+
+@media (min-width: 760px) {
+  .shell {
+    width: min(100%, 520px);
+    min-height: min(900px, 100svh);
+    margin: 0 auto;
+    border-right: 1px solid rgb(41 37 31 / 8%);
+    border-left: 1px solid rgb(41 37 31 / 8%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer,
+  .marker,
+  .mallMarker {
+    transition: none;
+  }
+}
