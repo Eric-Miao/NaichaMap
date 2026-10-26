@@ -19,6 +19,7 @@ export type NormalizedPoi = {
   address: string;
   gcj02: GeoPoint;
   wgs84: GeoPoint;
+  providerParentId: string | null;
 };
 
 export type NormalizedPlace = {
@@ -28,4 +29,5 @@ export type NormalizedPlace = {
   address: string;
   gcj02: GeoPoint;
   wgs84: GeoPoint;
+  providerParentId: string | null;
 };

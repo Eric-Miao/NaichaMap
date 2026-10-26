@@ -4,6 +4,7 @@ export type AmapPoi = {
   typecode?: string;
   address?: string | string[];
   location: string;
+  parent?: string;
 };
 
 export type AmapSearchResponse = {

@@ -34,6 +34,7 @@ export function normalizePlace(poi: AmapPoi): NormalizedPlace {
     address: normalizeAddress(poi.address),
     gcj02,
     wgs84: gcj02ToWgs84(gcj02),
+    providerParentId: poi.parent || null,
   };
 }
 
