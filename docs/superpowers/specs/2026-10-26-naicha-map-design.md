@@ -99,9 +99,11 @@
 ### 7.2 服务端
 
 - Vercel 承载页面和服务端 API。
-- 服务端持有高德 Web Service Key 与 Supabase Service Role Key。
+- 服务端持有高德 Web Service Key 与 Supabase Secret Key。
 - 浏览器不直接获得任何服务端密钥。
 - 附近搜索、缓存刷新、数据合并、纠错限流都通过服务端接口完成。
+- Vercel 服务端通过 `supabase-js` 和 Supabase HTTPS Data API / RPC 访问数据库，不把 PostgreSQL 直连作为网页运行时依赖。
+- PostgreSQL 直连仅用于迁移、备份和维护；建设阶段优先使用 Supabase MCP、CLI 或控制台 SQL Editor。
 
 ### 7.3 数据库
 
@@ -331,7 +333,7 @@
 - 精确坐标不得出现在 URL、分析事件、错误消息或应用日志中。
 - 应用日志不得记录 `/api/nearby` 请求体。
 - Vercel、CDN 或其他基础设施可能依据各自政策生成短期网络与安全日志；产品数据库不得复制这些日志，部署时选择可用的最短保留设置。
-- 高德 Key、Supabase Service Role Key 和 IP 哈希盐只存于 Vercel 环境变量。
+- 高德 Key、Supabase Secret Key 和 IP 哈希盐只存于 Vercel 环境变量。
 - 所有外部输入在服务端校验长度、类型和允许值。
 - 纠错详情按纯文本处理，禁止渲染用户 HTML。
 - Supabase 开启 RLS；正式表默认不允许匿名写入。
@@ -390,6 +392,7 @@
 
 - Vercel 账号。
 - Supabase 账号和项目。
+- Supabase Secret Key；仅通过本地或 Vercel 的私密环境变量配置，不通过聊天或代码仓库传递。
 - 高德开放平台账号及 Web Service Key。
 - 覆盖本项目存储与第三方渲染方式的高德邮件许可原件。
 - 产品正式名称；未提供前使用“奶茶地图”。

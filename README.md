@@ -15,7 +15,7 @@ V1 不包含导航、楼层信息、小程序直达、用户账号或独立管�
 
 ## 当前状态
 
-产品设计阶段。完整方案见 [V1 设计文档](docs/superpowers/specs/2026-10-26-naicha-map-design.md)。
+V1 设计已确认，等待按任务实施。参见 [V1 设计文档](docs/superpowers/specs/2026-10-26-naicha-map-design.md) 与 [实施计划](docs/superpowers/plans/2026-10-26-naicha-map-v1.md)。
 
 ## 计划技术栈
 
