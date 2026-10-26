@@ -1,0 +1,10 @@
+{
+  "status": "1",
+  "info": "OK",
+  "infocode": "10000",
+  "count": "26",
+  "pois": [
+    { "id": "coffee-1", "name": "Manner Coffee（人民广场店）", "typecode": "050500", "address": "南京西路1号", "location": "121.478,31.230" },
+    { "id": "tea-1", "name": "喜茶（来福士店）", "typecode": "050700", "address": ["西藏中路268号"], "location": "121.476,31.233" }
+  ]
+}
