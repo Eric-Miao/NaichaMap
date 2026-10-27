@@ -44,7 +44,7 @@ export class AmapClient {
 
   async searchBeverages(centerGcj02: GeoPoint, radius = 1500): Promise<NormalizedPoi[]> {
     assertShanghaiLocation(centerGcj02);
-    const batches = await Promise.all(
+    const results = await Promise.allSettled(
       BEVERAGE_QUERIES.map((query) =>
         this.searchPages("https://restapi.amap.com/v3/place/around", {
           location: `${centerGcj02.lng},${centerGcj02.lat}`,
@@ -53,6 +53,14 @@ export class AmapClient {
         }),
       ),
     );
+    const batches = results.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
+    if (batches.length === 0) {
+      const firstError = results.find((result) => result.status === "rejected");
+      if (firstError?.status === "rejected" && firstError.reason instanceof AmapProviderError) {
+        throw firstError.reason;
+      }
+      throw new AmapProviderError("AMAP_UPSTREAM", "AMap beverage search failed");
+    }
 
     const unique = this.dedupe(batches.flat());
     return unique.filter((poi) => classifyPoi(poi) !== null).map((poi) => normalizePoi(poi, this.brands));

@@ -41,4 +41,32 @@ describe("AmapClient", () => {
       expect.objectContaining({ code: "AMAP_TIMEOUT" }),
     );
   });
+
+  it("keeps successful beverage categories when one category times out", async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = new URL(String(input));
+      if (url.searchParams.get("keywords") === "奶茶") {
+        throw new DOMException("aborted", "AbortError");
+      }
+      const isCoffeeType = url.searchParams.get("types") === "050500";
+      const body = isCoffeeType ? page1 : { ...page1, count: "0", pois: [] };
+      return new Response(JSON.stringify(body));
+    });
+    const client = new AmapClient({ key: "secret-key", fetch: fetchMock, timeoutMs: 5 });
+
+    const result = await client.searchBeverages({ lng: 121.48, lat: 31.23 });
+
+    expect(result.map((poi) => poi.providerPlaceId)).toEqual(["coffee-1", "tea-1"]);
+  });
+
+  it("fails when every beverage category fails", async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new DOMException("aborted", "AbortError");
+    });
+    const client = new AmapClient({ key: "secret-key", fetch: fetchMock, timeoutMs: 5 });
+
+    await expect(client.searchBeverages({ lng: 121.48, lat: 31.23 })).rejects.toEqual(
+      expect.objectContaining({ code: "AMAP_TIMEOUT" }),
+    );
+  });
 });
