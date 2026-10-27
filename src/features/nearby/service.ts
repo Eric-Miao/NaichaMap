@@ -85,8 +85,9 @@ function groupStores(
   point: GeoPoint,
   cacheStatus: CacheStatus,
   cachedAt?: string | null,
+  allowCurrentMall = true,
 ): NearbyResponse {
-  const currentCandidate = resolveCurrentMall(point, malls);
+  const currentCandidate = allowCurrentMall ? resolveCurrentMall(point, malls) : null;
   const currentMall: MallSummary | null = currentCandidate
     ? {
         id: currentCandidate.id,
@@ -207,7 +208,9 @@ export function createNearbyService(deps: NearbyDependencies) {
       const providerCenter = wgs84ToGcj02(cell.center);
       const fetchedStores = await deps.provider.searchBeverages(providerCenter, cell.fetchRadiusM);
       stage = "malls";
+      let mallLookupSucceeded = true;
       const fetchedMalls = await deps.provider.searchMalls(providerCenter, cell.fetchRadiusM).catch((error) => {
+        mallLookupSucceeded = false;
         deps.diagnostic?.(toNearbyDiagnostic("malls", error));
         return [];
       });
@@ -216,16 +219,10 @@ export function createNearbyService(deps: NearbyDependencies) {
       const malls = await deps.repository.saveMalls(fetchedMalls);
       await deps.repository.saveStores(stores, malls);
 
-      const seen = new Set(stores.map((store) => store.providerPlaceId));
-      const missing = initialRows
-        .filter((row) => row.provider === "amap" && !seen.has(row.provider_place_id))
-        .map((row) => row.provider_place_id);
-      if (missing.length > 0) await deps.repository.markPossiblyClosed(missing);
-
       await deps.repository.finishSearchArea(claim.leaseToken, stores.length, true);
       const refreshedRows = await deps.repository.getNearby(input);
       const currentMalls = await deps.repository.listMallCandidates();
-      return groupStores(refreshedRows, currentMalls, input, "refreshed");
+      return groupStores(refreshedRows, currentMalls, input, "refreshed", undefined, mallLookupSucceeded);
     } catch (error) {
       deps.diagnostic?.(toNearbyDiagnostic(stage, error));
       try {

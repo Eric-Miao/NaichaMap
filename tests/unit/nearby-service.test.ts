@@ -70,7 +70,7 @@ describe("createNearbyService", () => {
     expect(deps.repository.claimSearchArea).not.toHaveBeenCalled();
   });
 
-  it("refreshes a cold cell, de-duplicates POIs and marks missing stores possibly closed", async () => {
+  it("refreshes a cold cell and de-duplicates POIs", async () => {
     const deps = dependencies();
     vi.mocked(deps.repository.getCacheState).mockResolvedValueOnce(null);
     vi.mocked(deps.repository.getNearby)
@@ -87,9 +87,25 @@ describe("createNearbyService", () => {
 
     expect(result.cacheStatus).toBe("refreshed");
     expect(deps.repository.saveStores).toHaveBeenCalledWith([normalizedPoi], []);
-    expect(deps.repository.markPossiblyClosed).toHaveBeenCalledWith(["old-poi"]);
     expect(deps.repository.finishSearchArea).toHaveBeenCalledWith("lease-1", 1, true);
     expect(vi.mocked(deps.repository.saveStores).mock.calls[0][0][0]).not.toHaveProperty("manualLockFields");
+  });
+
+  it("does not infer closures from a non-authoritative provider refresh", async () => {
+    const deps = dependencies();
+    vi.mocked(deps.repository.getCacheState).mockResolvedValueOnce(null);
+    vi.mocked(deps.repository.getNearby)
+      .mockResolvedValueOnce([{ ...dbStore, provider_place_id: "old-poi" }])
+      .mockResolvedValueOnce([dbStore]);
+    vi.mocked(deps.repository.claimSearchArea).mockResolvedValueOnce({
+      shouldFetch: true,
+      leaseToken: "lease-1",
+      hasStaleData: true,
+    });
+
+    await createNearbyService(deps)(point);
+
+    expect(deps.repository.markPossiblyClosed).not.toHaveBeenCalled();
   });
 
   it("returns stale cached data when AMap refresh fails", async () => {
@@ -143,6 +159,21 @@ describe("createNearbyService", () => {
     vi.mocked(deps.provider.searchMalls).mockRejectedValueOnce(
       Object.assign(new Error("coordinates=121.4,31.2 key=secret-key"), { code: "AMAP_TIMEOUT" }),
     );
+    vi.mocked(deps.repository.listMallCandidates).mockResolvedValueOnce([
+      {
+        id: "cached-mall",
+        providerPlaceId: "cached-provider-mall",
+        name: "旧商场边界",
+        address: "测试地址",
+        location: point,
+        boundary: [
+          { lng: point.lng - 0.001, lat: point.lat - 0.001 },
+          { lng: point.lng + 0.001, lat: point.lat - 0.001 },
+          { lng: point.lng + 0.001, lat: point.lat + 0.001 },
+          { lng: point.lng - 0.001, lat: point.lat + 0.001 },
+        ],
+      },
+    ]);
 
     const result = await createNearbyService(deps)(point);
 
