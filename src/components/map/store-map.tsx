@@ -1,19 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Map, type StyleSpecification } from "maplibre-gl";
+import { Map } from "maplibre-gl";
 
 import type { StoreGroup } from "@/features/nearby/contracts";
 import type { GeoPoint } from "@/lib/geo/coordinates";
 
 import styles from "./map-ui.module.css";
 import { MapMarkers } from "./map-markers";
-
-const fallbackStyle: StyleSpecification = {
-  version: 8,
-  sources: {},
-  layers: [{ id: "background", type: "background", paint: { "background-color": "#e2ddd2" } }],
-};
 
 export function StoreMap({
   styleUrl,
@@ -33,10 +27,10 @@ export function StoreMap({
   const mapContainer = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (!mapContainer.current || !styleUrl) return;
     const map = new Map({
       container: mapContainer.current,
-      style: styleUrl || fallbackStyle,
+      style: styleUrl,
       center: [userPoint.lng, userPoint.lat],
       zoom: 14.6,
       attributionControl: false,
