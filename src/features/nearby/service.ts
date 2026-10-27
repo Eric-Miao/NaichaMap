@@ -60,7 +60,20 @@ export type NearbyDependencies = {
   sleep: (milliseconds: number) => Promise<void>;
   repository: NearbyRepository;
   provider: Pick<AmapClient, "searchBeverages" | "searchMalls">;
+  diagnostic?: (event: NearbyDiagnostic) => void;
 };
+
+export type NearbyDiagnostic = {
+  stage: "beverages" | "malls" | "persistence" | "finish";
+  code: string;
+};
+
+export function toNearbyDiagnostic(stage: NearbyDiagnostic["stage"], error: unknown): NearbyDiagnostic {
+  const code = error && typeof error === "object" && "code" in error
+    ? String((error as { code?: unknown }).code)
+    : "UNKNOWN";
+  return { stage, code: /^[A-Z0-9_]{2,40}$/.test(code) ? code : "UNKNOWN" };
+}
 
 function isFresh(cache: CacheState | null, now: Date) {
   return cache?.fetchStatus === "succeeded" && Boolean(cache.expiresAt) && new Date(cache.expiresAt!).getTime() > now.getTime();
@@ -189,13 +202,17 @@ export function createNearbyService(deps: NearbyDependencies) {
       return waitForWinner(deps, cell.id, input, initialRows);
     }
 
+    let stage: NearbyDiagnostic["stage"] = "beverages";
     try {
       const providerCenter = wgs84ToGcj02(cell.center);
-      const [fetchedStores, fetchedMalls] = await Promise.all([
-        deps.provider.searchBeverages(providerCenter, cell.fetchRadiusM),
-        deps.provider.searchMalls(providerCenter, cell.fetchRadiusM),
-      ]);
+      const fetchedStores = await deps.provider.searchBeverages(providerCenter, cell.fetchRadiusM);
+      stage = "malls";
+      const fetchedMalls = await deps.provider.searchMalls(providerCenter, cell.fetchRadiusM).catch((error) => {
+        deps.diagnostic?.(toNearbyDiagnostic("malls", error));
+        return [];
+      });
       const stores = [...new Map(fetchedStores.map((store) => [store.providerPlaceId, store])).values()];
+      stage = "persistence";
       const malls = await deps.repository.saveMalls(fetchedMalls);
       await deps.repository.saveStores(stores, malls);
 
@@ -209,8 +226,13 @@ export function createNearbyService(deps: NearbyDependencies) {
       const refreshedRows = await deps.repository.getNearby(input);
       const currentMalls = await deps.repository.listMallCandidates();
       return groupStores(refreshedRows, currentMalls, input, "refreshed");
-    } catch {
-      await deps.repository.finishSearchArea(claim.leaseToken, 0, false);
+    } catch (error) {
+      deps.diagnostic?.(toNearbyDiagnostic(stage, error));
+      try {
+        await deps.repository.finishSearchArea(claim.leaseToken, 0, false);
+      } catch (finishError) {
+        deps.diagnostic?.(toNearbyDiagnostic("finish", finishError));
+      }
       if (initialRows.length > 0) {
         const malls = await deps.repository.listMallCandidates();
         return groupStores(initialRows, malls, input, "stale", cache?.lastFetchedAt);
@@ -401,5 +423,6 @@ export async function getNearby(input: NearbyInput): Promise<NearbyResponse> {
     sleep: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
     repository: createRepository(),
     provider: new AmapClient(),
+    diagnostic: (event) => console.error("nearby_refresh_failed", event),
   })(input);
 }

@@ -4,6 +4,8 @@ import { dirname, resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { toNearbyDiagnostic } from "../../src/features/nearby/service";
+
 const root = process.cwd();
 
 function read(path: string) {
@@ -51,6 +53,16 @@ describe("deployment privacy boundaries", () => {
       expect(source).not.toMatch(/console\.|logger\.|log\s*\(/);
     }
     expect(read("src/app/api/corrections/route.ts")).not.toMatch(/rawIp|clientIp/);
+  });
+
+  it("reduces nearby failures to a safe stage and stable code", () => {
+    const diagnostic = toNearbyDiagnostic(
+      "persistence",
+      Object.assign(new Error("coordinates=121.4,31.2 ip=203.0.113.1 key=secret-key"), { code: "23505" }),
+    );
+
+    expect(diagnostic).toEqual({ stage: "persistence", code: "23505" });
+    expect(JSON.stringify(diagnostic)).not.toMatch(/121\.4|31\.2|203\.0\.113\.1|secret-key/);
   });
 
   it("keeps the environment template value-free", () => {

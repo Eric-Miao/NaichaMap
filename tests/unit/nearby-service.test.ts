@@ -54,6 +54,7 @@ function dependencies(overrides: Partial<NearbyDependencies> = {}): NearbyDepend
       searchBeverages: vi.fn(async () => [normalizedPoi]),
       searchMalls: vi.fn(async () => []),
     },
+    diagnostic: vi.fn(),
     ...overrides,
   };
 }
@@ -126,6 +127,31 @@ describe("createNearbyService", () => {
       code: "PROVIDER_UNAVAILABLE",
       retryable: true,
     });
+  });
+
+  it("returns beverages when mall lookup fails", async () => {
+    const deps = dependencies();
+    vi.mocked(deps.repository.getNearby)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ ...dbStore, mall_id: null, mall_name: null, mall_address: null }]);
+    vi.mocked(deps.repository.getCacheState).mockResolvedValueOnce(null);
+    vi.mocked(deps.repository.claimSearchArea).mockResolvedValueOnce({
+      shouldFetch: true,
+      leaseToken: "lease-1",
+      hasStaleData: false,
+    });
+    vi.mocked(deps.provider.searchMalls).mockRejectedValueOnce(
+      Object.assign(new Error("coordinates=121.4,31.2 key=secret-key"), { code: "AMAP_TIMEOUT" }),
+    );
+
+    const result = await createNearbyService(deps)(point);
+
+    expect(result).toMatchObject({ cacheStatus: "refreshed", currentMall: null });
+    expect(result.groups[0]).toMatchObject({ kind: "street" });
+    expect(deps.repository.saveMalls).toHaveBeenCalledWith([]);
+    expect(deps.repository.saveStores).toHaveBeenCalledWith([normalizedPoi], []);
+    expect(deps.repository.finishSearchArea).toHaveBeenCalledWith("lease-1", 1, true);
+    expect(deps.diagnostic).toHaveBeenCalledWith({ stage: "malls", code: "AMAP_TIMEOUT" });
   });
 
   it("waits for a winning concurrent refresh", async () => {
