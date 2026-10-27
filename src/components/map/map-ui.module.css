@@ -56,7 +56,7 @@
 
 .markerLayer {
   position: absolute;
-  inset: 0;
+  inset: 0 0 min(292px, 40svh);
   pointer-events: none;
 }
 

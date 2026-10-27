@@ -15,9 +15,9 @@ V1 不包含导航、楼层信息、小程序直达、用户账号或独立管�
 
 ## 当前状态
 
-V1 设计已确认，等待按任务实施。参见 [V1 设计文档](docs/superpowers/specs/2026-10-26-naicha-map-design.md) 与 [实施计划](docs/superpowers/plans/2026-10-26-naicha-map-v1.md)。
+V1 已完成本地实现：定位或手动搜索地点后，页面会展示 1 公里内门店；商场判断可信时优先显示当前商场，否则保留已确认的商场分组并展示周边街铺。
 
-## 计划技术栈
+## 技术栈
 
 - Vercel
 - React + TypeScript
@@ -29,3 +29,25 @@ V1 设计已确认，等待按任务实施。参见 [V1 设计文档](docs/super
 ## 安全说明
 
 高德与 Supabase 的服务端密钥不得提交到仓库。授权邮件及附件也不进入仓库。
+
+## 本地运行
+
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+浏览器打开 `http://localhost:3000`。环境变量和值的填写方式、Supabase 初始化、Vercel 发布和回滚见 [部署说明](docs/deployment.md)。
+
+## 验证
+
+```bash
+npm test
+npm run typecheck
+npm run lint
+npm run build
+npm run test:e2e
+```
+
+配置本地密钥并启动网站后，可运行 `npm run validate:shanghai`。该命令会冷、热各查一次 12 个上海代表点，只输出区域、地点名、耗时和聚类统计，不输出坐标。人工补齐验收基线前，命令会明确返回发布阻塞。

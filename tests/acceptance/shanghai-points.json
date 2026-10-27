@@ -1,0 +1,14 @@
+[
+  { "district": "浦东新区", "label": "上海国金中心", "point": { "lng": 121.5031, "lat": 31.2356 }, "expectedMode": "mall", "expectedMall": "上海国金中心", "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] },
+  { "district": "黄浦区", "label": "新天地广场", "point": { "lng": 121.4745, "lat": 31.2194 }, "expectedMode": "mall", "expectedMall": "新天地", "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] },
+  { "district": "静安区", "label": "静安嘉里中心", "point": { "lng": 121.4487, "lat": 31.2242 }, "expectedMode": "mall", "expectedMall": "静安嘉里中心", "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] },
+  { "district": "徐汇区", "label": "港汇恒隆广场", "point": { "lng": 121.4382, "lat": 31.1944 }, "expectedMode": "mall", "expectedMall": "港汇恒隆广场", "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] },
+  { "district": "长宁区", "label": "长宁来福士", "point": { "lng": 121.4157, "lat": 31.2183 }, "expectedMode": "mall", "expectedMall": "长宁来福士", "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] },
+  { "district": "闵行区", "label": "七宝万科广场", "point": { "lng": 121.349, "lat": 31.1553 }, "expectedMode": "mall", "expectedMall": "七宝万科广场", "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] },
+  { "district": "宝山区", "label": "宝山万达广场", "point": { "lng": 121.4157, "lat": 31.3207 }, "expectedMode": "mall", "expectedMall": "宝山万达广场", "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] },
+  { "district": "杨浦区", "label": "五角场合生汇", "point": { "lng": 121.5142, "lat": 31.3018 }, "expectedMode": "mall", "expectedMall": "合生汇", "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] },
+  { "district": "嘉定区", "label": "南翔印象城MEGA", "point": { "lng": 121.3117, "lat": 31.2954 }, "expectedMode": "mall", "expectedMall": "南翔印象城", "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] },
+  { "district": "青浦区", "label": "虹桥天地", "point": { "lng": 121.2988, "lat": 31.1932 }, "expectedMode": "nearby", "expectedMall": null, "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] },
+  { "district": "松江区", "label": "松江万达广场", "point": { "lng": 121.2323, "lat": 31.0568 }, "expectedMode": "mall", "expectedMall": "松江万达广场", "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] },
+  { "district": "奉贤区", "label": "南桥百联购物中心", "point": { "lng": 121.4751, "lat": 30.9184 }, "expectedMode": "mall", "expectedMall": "南桥百联", "reviewComplete": false, "reviewedExpectedBrands": [], "reviewedRestaurantNames": [] }
+]

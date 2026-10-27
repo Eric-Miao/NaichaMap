@@ -73,6 +73,7 @@ test("mall mode supports filtering, map/list selection and copy feedback", async
   await expect(page.getByRole("button", { name: "选择喜茶" })).toHaveCount(0);
 
   await page.getByRole("tab", { name: "全部 3" }).click();
+  await page.getByRole("button", { name: "收起门店列表" }).click();
   await page.getByRole("button", { name: "上海国金中心，2 家门店" }).click();
   await expect(page.getByTestId("store-drawer")).toHaveAttribute("data-state", "expanded");
   await page.getByRole("button", { name: "选择喜茶" }).click();
