@@ -130,6 +130,34 @@ test("map drawer uses one content rail and stays within a 360px viewport", async
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 
+test("beverage markers remain legible and feedback follows the shell rail at medium widths", async ({ page }) => {
+  await page.setViewportSize({ width: 600, height: 800 });
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+
+  const contrast = await page.getByRole("button", { name: "鲜果饮品", exact: true }).evaluate((element) => {
+    const parse = (value: string) => value.match(/[\d.]+/g)!.slice(0, 3).map(Number);
+    const luminance = (rgb: number[]) => rgb
+      .map((channel) => channel / 255)
+      .map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
+      .reduce((total, channel, index) => total + channel * [0.2126, 0.7152, 0.0722][index], 0);
+    const style = getComputedStyle(element);
+    const foreground = luminance(parse(style.color));
+    const background = luminance(parse(style.backgroundColor));
+    return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
+  });
+  expect(contrast).toBeGreaterThanOrEqual(4.5);
+
+  const rightRail = await page.evaluate(() => {
+    const shell = document.querySelector("main");
+    const feedback = Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "信息有误？");
+    if (!shell || !feedback) return null;
+    return shell.getBoundingClientRect().right - feedback.getBoundingClientRect().right;
+  });
+  expect(rightRail).toBe(16);
+});
+
 test("correction dialog centers on desktop and keeps aligned form controls", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await mockLocation(page, "success");
