@@ -1,24 +1,18 @@
 .shell {
-  --ink: #29251f;
-  --muted: #655d53;
-  --paper: #fffdf9;
-  --ground: #eee8dd;
-  --accent: #6b4a2b;
-  --accent-soft: #eadfce;
   position: relative;
   display: flex;
   min-height: 100svh;
   flex-direction: column;
   overflow: hidden;
-  background: var(--ground);
-  color: var(--ink);
+  background: var(--color-canvas);
+  color: var(--color-text);
 }
 
 .topbar {
   z-index: 3;
   flex: none;
-  background: var(--paper);
-  padding: max(16px, env(safe-area-inset-top)) 16px 14px;
+  background: var(--color-surface);
+  padding: max(var(--content-rail), env(safe-area-inset-top)) var(--content-rail) 14px;
   box-shadow: 0 8px 24px rgb(62 49 36 / 8%);
 }
 
@@ -32,7 +26,7 @@
 
 .topbar p {
   margin: 5px 0 0;
-  color: var(--muted);
+  color: var(--color-muted);
   font-size: 0.8rem;
   line-height: 1.45;
 }
@@ -86,7 +80,7 @@
   align-items: center;
   gap: 8px;
   border-radius: 14px;
-  background: var(--accent);
+  background: var(--color-action);
   padding: 8px 10px 8px 12px;
   text-align: left;
 }
@@ -115,11 +109,14 @@
   width: 44px;
   place-items: center;
   border-radius: 50% 50% 50% 10px;
-  background: #7c5533;
+  background: var(--color-tea);
   font-size: 0.72rem;
   font-weight: 850;
   transform: translate(-50%, -50%) rotate(-45deg);
 }
+
+.marker[data-category="coffee"] { background: var(--color-coffee); }
+.marker[data-category="beverage"] { background: var(--color-beverage); }
 
 .marker > span {
   transform: rotate(45deg);
@@ -140,7 +137,7 @@
   height: 18px;
   border: 4px solid #fff;
   border-radius: 50%;
-  background: #42776f;
+  background: var(--color-focus);
   box-shadow: 0 4px 12px rgb(31 68 64 / 30%);
 }
 
@@ -154,8 +151,8 @@
   height: min(76svh, 680px);
   flex-direction: column;
   overflow: hidden;
-  border-radius: 18px 18px 0 0;
-  background: var(--paper);
+  border-radius: var(--radius-surface) var(--radius-surface) 0 0;
+  background: var(--color-surface);
   box-shadow: 0 -12px 32px rgb(58 46 34 / 13%);
   transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -191,7 +188,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 16px 10px;
+  padding: 0 var(--content-rail) 10px;
 }
 
 .drawerHeading h2 {
@@ -202,7 +199,7 @@
 }
 
 .drawerHeading span {
-  color: var(--muted);
+  color: var(--color-muted);
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
@@ -215,8 +212,8 @@
   flex: none;
   gap: 8px;
   overflow-x: auto;
-  padding: 0 16px 12px;
-  background: var(--paper);
+  padding: 0 var(--content-rail) var(--space-3);
+  background: var(--color-surface);
   scrollbar-width: none;
 }
 
@@ -239,15 +236,15 @@
 }
 
 .tab[aria-selected="true"] {
-  background: var(--accent);
-  color: #fffdf9;
+  background: var(--color-action);
+  color: var(--color-action-text);
 }
 
 .list {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
-  padding: 0 16px max(20px, env(safe-area-inset-bottom));
+  padding: 0 var(--content-rail) max(20px, env(safe-area-inset-bottom));
   scrollbar-color: #b6a999 transparent;
   scrollbar-width: thin;
 }
@@ -265,7 +262,7 @@
   gap: 12px;
   border: 0;
   background: transparent;
-  color: var(--ink);
+  color: var(--color-text);
   padding: 4px 2px;
   cursor: pointer;
   font: inherit;
@@ -277,7 +274,7 @@
 }
 
 .groupHeader span {
-  color: var(--muted);
+  color: var(--color-muted);
   font-size: 0.72rem;
 }
 
@@ -287,7 +284,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  border-top: 1px solid #e8e1d7;
+  border-top: 1px solid var(--color-border);
   padding: 8px 0;
 }
 
@@ -300,7 +297,7 @@
   gap: 10px;
   border: 0;
   background: transparent;
-  color: var(--ink);
+  color: var(--color-text);
   padding: 0;
   cursor: pointer;
   font: inherit;
@@ -313,10 +310,24 @@
   height: 42px;
   place-items: center;
   border-radius: 13px;
-  background: var(--accent-soft);
-  color: #5c3e21;
+  background: color-mix(in srgb, var(--color-tea) 16%, var(--color-surface));
+  color: var(--color-tea);
   font-size: 0.9rem;
   font-weight: 900;
+}
+
+.storeCard[data-category="coffee"] .brandTile {
+  background: color-mix(in srgb, var(--color-coffee) 16%, var(--color-surface));
+  color: var(--color-coffee);
+}
+
+.storeCard[data-category="beverage"] .brandTile {
+  background: color-mix(in srgb, var(--color-beverage) 16%, var(--color-surface));
+  color: var(--color-beverage);
+}
+
+.storeCard[data-selected="true"] {
+  box-shadow: inset 3px 0 var(--color-focus);
 }
 
 .storeCopy {
@@ -337,7 +348,7 @@
 
 .storeCopy span {
   margin-top: 4px;
-  color: var(--muted);
+  color: var(--color-muted);
   font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
 }
@@ -349,7 +360,7 @@
   gap: 5px;
   border: 0;
   border-radius: 12px;
-  background: var(--ink);
+  background: var(--color-text);
   color: #fff;
   padding: 0 11px;
   cursor: pointer;
@@ -379,7 +390,7 @@
 .copyButton:focus-visible,
 .marker:focus-visible,
 .mallMarker:focus-visible {
-  outline: 3px solid #3f756d;
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 

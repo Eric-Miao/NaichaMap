@@ -61,6 +61,7 @@ export function MapMarkers({
           key={store.id}
           type="button"
           className={`${styles.marker} ${selectedId === store.id ? styles.selected : ""}`}
+          data-category={store.category}
           style={position(store.location)}
           aria-label={store.name}
           onClick={() => onSelectStore(store.id)}

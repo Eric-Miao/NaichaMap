@@ -114,6 +114,22 @@ test("mall mode supports filtering, map/list selection and copy feedback", async
   expect(overflow).toBe(false);
 });
 
+test("map drawer uses one content rail and stays within a 360px viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+
+  const leftEdges = await Promise.all([
+    page.getByRole("heading", { name: "上海国金中心" }).evaluate((element) => element.getBoundingClientRect().left),
+    page.getByRole("heading", { name: "附近好喝的" }).evaluate((element) => element.getBoundingClientRect().left),
+    page.getByRole("tab", { name: "全部 3" }).evaluate((element) => element.getBoundingClientRect().left),
+    page.getByRole("article", { name: "喜茶门店信息" }).evaluate((element) => element.getBoundingClientRect().left),
+  ]);
+  expect(Math.max(...leftEdges) - Math.min(...leftEdges)).toBeLessThanOrEqual(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+});
+
 test("nearby mode preserves confirmed mall groups and street stores", async ({ page }) => {
   await mockLocation(page, "success");
   await page.route("**/api/nearby", (route) =>

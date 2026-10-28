@@ -14,7 +14,12 @@ export function StoreCard({
 }) {
   const displayName = store.branchName ? `${store.name} · ${store.branchName}` : store.name;
   return (
-    <article className={styles.storeCard} data-selected={selected || undefined}>
+    <article
+      className={styles.storeCard}
+      data-category={store.category}
+      data-selected={selected || undefined}
+      aria-label={`${store.name}门店信息`}
+    >
       <button
         type="button"
         className={styles.storeSelect}

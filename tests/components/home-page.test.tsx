@@ -70,6 +70,32 @@ describe("HomePage", () => {
     expect(screen.getByRole("button", { name: "上海国金中心，1 家门店" })).toBeInTheDocument();
   });
 
+  it("exposes store categories consistently to cards and map markers", async () => {
+    setFetch(() => Response.json({
+      ...nearby,
+      currentMall: null,
+      groups: [{
+        kind: "street",
+        id: "street",
+        mall: null,
+        stores: [
+          nearby.groups[0].stores[0],
+          { ...nearby.groups[0].stores[0], id: "coffee-1", name: "M Stand", category: "coffee" },
+        ],
+      }],
+    }));
+    render(<HomePage />);
+    await userEvent.click(screen.getByRole("button", { name: "使用我的位置" }));
+    locationSuccess({ coords: { longitude: 121.49, latitude: 31.24 } } as GeolocationPosition);
+
+    const teaCard = await screen.findByRole("article", { name: "喜茶门店信息" });
+    const coffeeCard = screen.getByRole("article", { name: "M Stand门店信息" });
+    expect(teaCard).toHaveAttribute("data-category", "tea_drink");
+    expect(coffeeCard).toHaveAttribute("data-category", "coffee");
+    expect(screen.getByRole("button", { name: "喜茶" })).toHaveAttribute("data-category", "tea_drink");
+    expect(screen.getByRole("button", { name: "M Stand" })).toHaveAttribute("data-category", "coffee");
+  });
+
   it("falls back to manual Shanghai place search after permission denial", async () => {
     setFetch((url) =>
       url.startsWith("/api/search-place")
