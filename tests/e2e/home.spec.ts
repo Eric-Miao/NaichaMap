@@ -130,6 +130,27 @@ test("map drawer uses one content rail and stays within a 360px viewport", async
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 
+test("correction dialog centers on desktop and keeps aligned form controls", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+  await page.getByRole("button", { name: "信息有误？" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "补充或纠错" });
+  const geometry = await dialog.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const controls = Array.from(element.querySelectorAll("select,input,textarea,button[type='submit']"));
+    return {
+      dialogCenter: rect.top + rect.height / 2,
+      viewportCenter: window.innerHeight / 2,
+      widths: controls.map((control) => control.getBoundingClientRect().width),
+    };
+  });
+  expect(Math.abs(geometry.dialogCenter - geometry.viewportCenter)).toBeLessThanOrEqual(2);
+  expect(Math.max(...geometry.widths) - Math.min(...geometry.widths)).toBeLessThanOrEqual(1);
+});
+
 test("nearby mode preserves confirmed mall groups and street stores", async ({ page }) => {
   await mockLocation(page, "success");
   await page.route("**/api/nearby", (route) =>

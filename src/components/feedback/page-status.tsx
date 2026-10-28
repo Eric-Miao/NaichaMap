@@ -14,8 +14,12 @@ export function PageStatus({ kind, message, retryable = false, onRetry, onCorrec
         <h2>{title}</h2>
         <p>{message ?? (kind === "empty" ? "如果你知道这里有新店，可以帮我们补充。" : "请稍候")}</p>
         {kind === "loading" || kind === "refreshing" ? <><div className={styles.skeleton} /><div className={styles.skeleton} /><div className={styles.skeleton} /></> : null}
-        {retryable ? <button type="button" className={styles.primary} onClick={onRetry}>重试</button> : null}
-        {kind === "empty" ? <button type="button" className={styles.primary} onClick={onCorrection}>补充遗漏门店</button> : null}
+        {retryable || kind === "empty" ? (
+          <div className={styles.statusActions}>
+            {retryable ? <button type="button" className={styles.primary} onClick={onRetry}>重试</button> : null}
+            {kind === "empty" ? <button type="button" className={styles.primary} onClick={onCorrection}>补充遗漏门店</button> : null}
+          </div>
+        ) : null}
       </section>
     </main>
   );

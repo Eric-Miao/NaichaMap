@@ -178,4 +178,24 @@ describe("HomePage", () => {
     expect(await screen.findByText(/3 分钟后再试/)).toBeInTheDocument();
     expect(screen.getByLabelText("补充说明")).toBeInTheDocument();
   });
+
+  it("keeps correction submission visibly disabled while it is pending", async () => {
+    let finishSubmission!: (response: Response) => void;
+    setFetch((url) =>
+      url === "/api/corrections"
+        ? new Promise<Response>((resolve) => { finishSubmission = resolve; })
+        : Response.json({ currentMall: null, groups: [], cacheStatus: "fresh" }),
+    );
+    render(<HomePage />);
+    await userEvent.click(screen.getByRole("button", { name: "使用我的位置" }));
+    locationSuccess({ coords: { longitude: 121.49, latitude: 31.24 } } as GeolocationPosition);
+    await userEvent.click(await screen.findByRole("button", { name: "补充遗漏门店" }));
+    await userEvent.type(screen.getByLabelText("门店名称"), "测试茶饮店");
+    await userEvent.type(screen.getByLabelText("补充说明"), "这里新开了一家店");
+    await userEvent.click(screen.getByRole("button", { name: "提交纠错" }));
+
+    expect(screen.getByRole("button", { name: "提交中" })).toBeDisabled();
+    finishSubmission(Response.json({ ok: true }, { status: 201 }));
+    expect(await screen.findByText("感谢，你的反馈已记录")).toBeInTheDocument();
+  });
 });
