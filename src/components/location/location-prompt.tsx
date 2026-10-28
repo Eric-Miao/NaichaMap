@@ -18,11 +18,15 @@ export function LocationPrompt({ state, onLocate, onSearch }: {
         <h1>奶茶地图</h1>
         <p>{message}</p>
         <div className={styles.actions}>
-          <button type="button" className={styles.primary} onClick={onLocate}>
-            <LocateFixed aria-hidden="true" size={17} />使用我的位置
+          <button type="button" className={`${styles.primary} ${styles.actionControl}`} onClick={onLocate}>
+            <span className={styles.actionIcon} aria-hidden="true"><LocateFixed size={18} /></span>
+            <span className={styles.actionLabel}>使用我的位置</span>
+            <span className={styles.actionSpacer} aria-hidden="true" />
           </button>
-          <button type="button" className={styles.secondary} onClick={onSearch}>
-            <Search aria-hidden="true" size={17} />搜索商场或地点
+          <button type="button" className={`${styles.secondary} ${styles.actionControl}`} onClick={onSearch}>
+            <span className={styles.actionIcon} aria-hidden="true"><Search size={18} /></span>
+            <span className={styles.actionLabel}>搜索商场或地点</span>
+            <span className={styles.actionSpacer} aria-hidden="true" />
           </button>
         </div>
       </section>

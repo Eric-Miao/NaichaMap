@@ -62,6 +62,36 @@ async function mockLocation(page: import("@playwright/test").Page, mode: "succes
   }, { locationMode: mode });
 }
 
+test("entry controls keep labels centered and form controls equal height", async ({ page }) => {
+  await page.goto("/");
+
+  for (const name of ["使用我的位置", "搜索商场或地点"]) {
+    const button = page.getByRole("button", { name });
+    const label = button.locator(":scope > span").nth(1);
+    await expect(label).toHaveCount(1);
+    const centers = await button.evaluate((element) => {
+      const labelElement = element.querySelector(":scope > span:nth-child(2)");
+      if (!labelElement) return null;
+      const buttonRect = element.getBoundingClientRect();
+      const labelRect = labelElement.getBoundingClientRect();
+      return {
+        button: buttonRect.left + buttonRect.width / 2,
+        label: labelRect.left + labelRect.width / 2,
+      };
+    });
+    expect(centers).not.toBeNull();
+    expect(Math.abs(centers!.button - centers!.label)).toBeLessThanOrEqual(1);
+  }
+
+  await page.getByRole("button", { name: "搜索商场或地点" }).click();
+  const inputHeight = await page.getByRole("searchbox", { name: "搜索上海商场或地点" })
+    .evaluate((element) => element.getBoundingClientRect().height);
+  const buttonHeight = await page.getByRole("button", { name: "搜索", exact: true })
+    .evaluate((element) => element.getBoundingClientRect().height);
+  expect(inputHeight).toBe(48);
+  expect(buttonHeight).toBe(48);
+});
+
 test("mall mode supports filtering, map/list selection and copy feedback", async ({ page }) => {
   await mockLocation(page, "success");
   await page.goto("/");

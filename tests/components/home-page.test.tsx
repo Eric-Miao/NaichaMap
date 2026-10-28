@@ -46,6 +46,19 @@ beforeEach(() => {
 });
 
 describe("HomePage", () => {
+  it("keeps entry action labels independent from decorative icon slots", () => {
+    render(<HomePage />);
+
+    for (const name of ["使用我的位置", "搜索商场或地点"]) {
+      const button = screen.getByRole("button", { name });
+      const slots = button.querySelectorAll(":scope > span");
+      expect(slots).toHaveLength(3);
+      expect(slots[0]).toHaveAttribute("aria-hidden", "true");
+      expect(slots[2]).toHaveAttribute("aria-hidden", "true");
+      expect(slots[1]).toHaveTextContent(name);
+    }
+  });
+
   it("requests location only after a clear user action and renders mall mode", async () => {
     render(<HomePage />);
     expect(navigator.geolocation.getCurrentPosition).not.toHaveBeenCalled();

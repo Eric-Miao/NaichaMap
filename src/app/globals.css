@@ -2,8 +2,29 @@
 
 :root {
   color-scheme: light;
-  background: #f7f4ee;
-  color: #25241f;
+  --color-canvas: #f2eee6;
+  --color-surface: #fffdf9;
+  --color-surface-soft: #eee7dc;
+  --color-text: #29251f;
+  --color-muted: #655d53;
+  --color-border: #d4cabd;
+  --color-action: #68482a;
+  --color-action-text: #fffdf9;
+  --color-focus: #31766b;
+  --color-tea: #3f7b68;
+  --color-coffee: #765239;
+  --color-beverage: #c66b3d;
+  --radius-surface: 16px;
+  --radius-control: 12px;
+  --control-height: 48px;
+  --content-rail: 16px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  background: var(--color-canvas);
+  color: var(--color-text);
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -19,41 +40,6 @@ body {
 
 body {
   min-height: 100svh;
-}
-
-.app-shell {
-  display: grid;
-  min-height: 100svh;
-  place-items: center;
-  padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
-}
-
-.intro-card {
-  width: min(100%, 420px);
-  border: 1px solid rgb(37 36 31 / 10%);
-  border-radius: 24px;
-  background: rgb(255 255 255 / 78%);
-  padding: 28px;
-  box-shadow: 0 20px 60px rgb(37 36 31 / 8%);
-}
-
-.intro-card h1 {
-  margin: 8px 0 12px;
-  font-size: clamp(2rem, 12vw, 4rem);
-  letter-spacing: -0.06em;
-  line-height: 0.96;
-}
-
-.intro-card p {
-  margin: 0;
-  color: #6e6a5f;
-  line-height: 1.6;
-}
-
-.intro-card .eyebrow {
-  color: #a1492f;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  background: var(--color-canvas);
+  color: var(--color-text);
 }
