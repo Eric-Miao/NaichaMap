@@ -65,12 +65,11 @@ export function resolveMallForStore(store: StoreMallEvidence, malls: MallCandida
   return (
     malls.find((mall) => {
       const mallName = normalizeMallName(mall.name);
+      const nearby = distanceMeters(store.location, mall.location) <= 500;
+      const parentMatches = Boolean(store.providerParentId) && store.providerParentId === mall.providerPlaceId;
+      const nameMatches = mallName.length >= 2 && storeText.includes(mallName);
       return (
-        Boolean(store.providerParentId) &&
-        store.providerParentId === mall.providerPlaceId &&
-        distanceMeters(store.location, mall.location) <= 300 &&
-        mallName.length >= 2 &&
-        storeText.includes(mallName)
+        nearby && (parentMatches || nameMatches)
       );
     }) ?? null
   );

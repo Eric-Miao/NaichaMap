@@ -33,6 +33,24 @@ const normalizedPoi = {
   providerParentId: "mall-provider-1",
 };
 
+const fetchedMall = {
+  id: "mall-1",
+  providerPlaceId: "mall-provider-1",
+  name: "上海来福士广场",
+  address: "西藏中路268号",
+  location: { lng: 121.475, lat: 31.232 },
+  boundary: null,
+};
+
+const persistedMall = {
+  id: "mall-2",
+  providerPlaceId: "mall-provider-2",
+  name: "附近已有商场",
+  address: "南京东路",
+  location: { lng: 121.48, lat: 31.23 },
+  boundary: null,
+};
+
 function dependencies(overrides: Partial<NearbyDependencies> = {}): NearbyDependencies {
   return {
     now: () => new Date("2026-10-26T00:00:00Z"),
@@ -89,6 +107,26 @@ describe("createNearbyService", () => {
     expect(deps.repository.saveStores).toHaveBeenCalledWith([normalizedPoi], []);
     expect(deps.repository.finishSearchArea).toHaveBeenCalledWith("lease-1", 1, true);
     expect(vi.mocked(deps.repository.saveStores).mock.calls[0][0][0]).not.toHaveProperty("manualLockFields");
+  });
+
+  it("assigns refreshed stores against all persisted mall candidates", async () => {
+    const deps = dependencies();
+    vi.mocked(deps.repository.getCacheState).mockResolvedValueOnce(null);
+    vi.mocked(deps.repository.getNearby).mockResolvedValueOnce([]).mockResolvedValueOnce([dbStore]);
+    vi.mocked(deps.repository.claimSearchArea).mockResolvedValueOnce({
+      shouldFetch: true,
+      leaseToken: "lease-1",
+      hasStaleData: false,
+    });
+    vi.mocked(deps.repository.saveMalls).mockResolvedValueOnce([fetchedMall]);
+    vi.mocked(deps.repository.listMallCandidates).mockResolvedValue([persistedMall, fetchedMall]);
+
+    await createNearbyService(deps)(point);
+
+    expect(deps.repository.saveStores).toHaveBeenCalledWith(
+      [normalizedPoi],
+      [persistedMall, fetchedMall],
+    );
   });
 
   it("does not infer closures from a non-authoritative provider refresh", async () => {
@@ -180,7 +218,10 @@ describe("createNearbyService", () => {
     expect(result).toMatchObject({ cacheStatus: "refreshed", currentMall: null });
     expect(result.groups[0]).toMatchObject({ kind: "street" });
     expect(deps.repository.saveMalls).toHaveBeenCalledWith([]);
-    expect(deps.repository.saveStores).toHaveBeenCalledWith([normalizedPoi], []);
+    expect(deps.repository.saveStores).toHaveBeenCalledWith(
+      [normalizedPoi],
+      [expect.objectContaining({ id: "cached-mall" })],
+    );
     expect(deps.repository.finishSearchArea).toHaveBeenCalledWith("lease-1", 1, true);
     expect(deps.diagnostic).toHaveBeenCalledWith({ stage: "malls", code: "AMAP_TIMEOUT" });
   });

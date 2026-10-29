@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import { getSearchCell } from "../../src/lib/geo/grid";
 
 describe("getSearchCell", () => {
+  it("versions cache cells for unified mall reassignment", () => {
+    expect(getSearchCell({ lng: 121.4737, lat: 31.2304 }).id).toMatch(/^v2:/);
+  });
+
   it("puts nearby points into one 0.005° cell", () => {
     const first = getSearchCell({ lng: 121.4711, lat: 31.2311 });
     const second = getSearchCell({ lng: 121.4749, lat: 31.2349 });

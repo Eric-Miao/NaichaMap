@@ -216,12 +216,12 @@ export function createNearbyService(deps: NearbyDependencies) {
       });
       const stores = [...new Map(fetchedStores.map((store) => [store.providerPlaceId, store])).values()];
       stage = "persistence";
-      const malls = await deps.repository.saveMalls(fetchedMalls);
-      await deps.repository.saveStores(stores, malls);
+      await deps.repository.saveMalls(fetchedMalls);
+      const currentMalls = await deps.repository.listMallCandidates();
+      await deps.repository.saveStores(stores, currentMalls);
 
       await deps.repository.finishSearchArea(claim.leaseToken, stores.length, true);
       const refreshedRows = await deps.repository.getNearby(input);
-      const currentMalls = await deps.repository.listMallCandidates();
       return groupStores(refreshedRows, currentMalls, input, "refreshed", undefined, mallLookupSucceeded);
     } catch (error) {
       deps.diagnostic?.(toNearbyDiagnostic(stage, error));

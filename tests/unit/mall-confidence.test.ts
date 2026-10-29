@@ -28,8 +28,23 @@ describe("mall confidence", () => {
     expect(resolveCurrentMall({ lng: 121.456, lat: 31.217 }, [mall])?.id).toBe("mall-1");
   });
 
-  it("accepts parent, distance and normalized name evidence together", () => {
-    expect(resolveMallForStore({ ...store, location: { lng: 121.457, lat: 31.217 } }, [
+  it("accepts matching provider parent within 500 metres without mall text", () => {
+    expect(resolveMallForStore({
+      ...store,
+      name: "喜茶",
+      address: "淮海中路",
+      location: { lng: 121.459, lat: 31.217 },
+    }, [
+      { ...mall, boundary: null },
+    ])?.id).toBe("mall-1");
+  });
+
+  it("accepts normalized mall text within 500 metres without a provider parent", () => {
+    expect(resolveMallForStore({
+      ...store,
+      providerParentId: null,
+      location: { lng: 121.459, lat: 31.217 },
+    }, [
       { ...mall, boundary: null },
     ])?.id).toBe("mall-1");
   });
@@ -47,6 +62,15 @@ describe("mall confidence", () => {
     expect(
       resolveMallForStore(
         { ...store, providerParentId: "OTHER", location: { lng: 121.5, lat: 31.25 } },
+        [{ ...mall, boundary: null }],
+      ),
+    ).toBeNull();
+  });
+
+  it("rejects matching parent and name beyond 500 metres", () => {
+    expect(
+      resolveMallForStore(
+        { ...store, location: { lng: 121.47, lat: 31.217 } },
         [{ ...mall, boundary: null }],
       ),
     ).toBeNull();
