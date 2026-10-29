@@ -29,6 +29,14 @@ const BEVERAGE_QUERIES: Array<Record<string, string>> = [
   { keywords: "饮品店" },
 ];
 
+const MALL_QUERIES: Array<Record<string, string>> = [
+  { types: "060101" },
+  { types: "060102" },
+  { keywords: "商场" },
+  { keywords: "购物中心" },
+];
+const MALL_TYPE_CODES = new Set(["060100", "060101", "060102"]);
+
 export class AmapClient {
   private readonly key: string;
   private readonly fetchImpl: FetchLike;
@@ -68,12 +76,26 @@ export class AmapClient {
 
   async searchMalls(centerGcj02: GeoPoint, radius = 1500): Promise<NormalizedPlace[]> {
     assertShanghaiLocation(centerGcj02);
-    const pois = await this.searchPages("https://restapi.amap.com/v3/place/around", {
-      location: `${centerGcj02.lng},${centerGcj02.lat}`,
-      radius: String(radius),
-      types: "060101",
-    });
-    return this.dedupe(pois).map(normalizePlace);
+    const results = await Promise.allSettled(
+      MALL_QUERIES.map((query) =>
+        this.searchPages("https://restapi.amap.com/v3/place/around", {
+          location: `${centerGcj02.lng},${centerGcj02.lat}`,
+          radius: String(radius),
+          ...query,
+        }),
+      ),
+    );
+    const batches = results.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
+    if (batches.length === 0) {
+      const firstError = results.find((result) => result.status === "rejected");
+      if (firstError?.status === "rejected" && firstError.reason instanceof AmapProviderError) {
+        throw firstError.reason;
+      }
+      throw new AmapProviderError("AMAP_UPSTREAM", "AMap mall search failed");
+    }
+    return this.dedupe(batches.flat())
+      .filter((poi) => Boolean(poi.typecode) && MALL_TYPE_CODES.has(poi.typecode!))
+      .map(normalizePlace);
   }
 
   async searchPlaces(query: string): Promise<NormalizedPlace[]> {
