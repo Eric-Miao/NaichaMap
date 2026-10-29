@@ -65,4 +65,15 @@ describe("mapReducer", () => {
       selectedId: "mall-1",
     });
   });
+
+  it("stores a location-group filter and resets it when new nearby data loads", () => {
+    const filtered = mapReducer(initialMapState, {
+      type: "SET_GROUP_FILTER",
+      groupFilter: "mall-1",
+    } as never);
+    expect(filtered).toMatchObject({ groupFilter: "mall-1" });
+
+    const reloaded = mapReducer(filtered, { type: "LOAD_SUCCESS", payload: mallResponse });
+    expect(reloaded).toMatchObject({ groupFilter: "all" });
+  });
 });

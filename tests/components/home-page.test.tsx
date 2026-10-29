@@ -59,15 +59,23 @@ describe("HomePage", () => {
     }
   });
 
-  it("requests location only after a clear user action and renders mall mode", async () => {
+  it("requests location only after a clear user action and renders grouped mall results", async () => {
     render(<HomePage />);
     expect(navigator.geolocation.getCurrentPosition).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole("button", { name: "使用我的位置" }));
     locationSuccess({ coords: { longitude: 121.49, latitude: 31.24 } } as GeolocationPosition);
 
-    expect(await screen.findByRole("heading", { name: "上海国金中心" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "上海国金中心，1 家门店" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "上海国金中心，1 家门店" })).toBeInTheDocument();
+  });
+
+  it("uses one nearby title even when the current point is inside a mall", async () => {
+    render(<HomePage />);
+    await userEvent.click(screen.getByRole("button", { name: "使用我的位置" }));
+    locationSuccess({ coords: { longitude: 121.49, latitude: 31.24 } } as GeolocationPosition);
+
+    expect(await screen.findByRole("heading", { name: "附近好喝的", level: 1 })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "上海国金中心", level: 1 })).not.toBeInTheDocument();
   });
 
   it("exposes store categories consistently to cards and map markers", async () => {

@@ -92,12 +92,12 @@ test("entry controls keep labels centered and form controls equal height", async
   expect(buttonHeight).toBe(48);
 });
 
-test("mall mode supports filtering, map/list selection and copy feedback", async ({ page }) => {
+test("unified nearby mode supports filtering, map/list selection and copy feedback", async ({ page }) => {
   await mockLocation(page, "success");
   await page.goto("/");
   await page.getByRole("button", { name: "使用我的位置" }).click();
 
-  await expect(page.getByRole("heading", { name: "上海国金中心" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "附近好喝的", level: 1 })).toBeVisible();
   await page.getByRole("tab", { name: "咖啡 1" }).click();
   await expect(page.getByRole("button", { name: "选择M Stand" })).toBeVisible();
   await expect(page.getByRole("button", { name: "选择喜茶" })).toHaveCount(0);
@@ -114,6 +114,22 @@ test("mall mode supports filtering, map/list selection and copy feedback", async
   expect(overflow).toBe(false);
 });
 
+test("location and category filters apply together to the map and list", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+
+  await page.getByRole("tab", { name: "上海国金中心 2" }).click();
+  await expect(page.getByRole("button", { name: "选择鲜果饮品" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "上海国金中心，2 家门店" })).toBeVisible();
+  await page.getByRole("tab", { name: "咖啡 1" }).click();
+  await expect(page.getByRole("button", { name: "上海国金中心，1 家门店" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "选择M Stand" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "选择喜茶" })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+});
+
 test("map drawer uses one content rail and stays within a 360px viewport", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await mockLocation(page, "success");
@@ -121,8 +137,8 @@ test("map drawer uses one content rail and stays within a 360px viewport", async
   await page.getByRole("button", { name: "使用我的位置" }).click();
 
   const leftEdges = await Promise.all([
-    page.getByRole("heading", { name: "上海国金中心" }).evaluate((element) => element.getBoundingClientRect().left),
-    page.getByRole("heading", { name: "附近好喝的" }).evaluate((element) => element.getBoundingClientRect().left),
+    page.getByRole("heading", { name: "附近好喝的", level: 1 }).evaluate((element) => element.getBoundingClientRect().left),
+    page.getByRole("heading", { name: "附近好喝的", level: 2 }).evaluate((element) => element.getBoundingClientRect().left),
     page.getByRole("tab", { name: "全部 3" }).evaluate((element) => element.getBoundingClientRect().left),
     page.getByRole("article", { name: "喜茶门店信息" }).evaluate((element) => element.getBoundingClientRect().left),
   ]);

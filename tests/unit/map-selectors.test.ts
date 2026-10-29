@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { selectVisibleGroups } from "../../src/features/map/selectors";
+import { filterStoreGroups, selectVisibleGroups } from "../../src/features/map/selectors";
 import type { MapState } from "../../src/features/map/reducer";
 
 const groups = [
@@ -27,6 +27,7 @@ function state(filter: MapState["filter"]): MapState {
   return {
     status: "ready-nearby",
     filter,
+    groupFilter: "all",
     drawerOpen: true,
     selectedId: null,
     data: { currentMall: null, groups, cacheStatus: "fresh" },
@@ -51,5 +52,18 @@ describe("selectVisibleGroups", () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("mall-1");
     expect(result[0].stores.map((store) => store.id)).toEqual(["coffee"]);
+  });
+
+  it("combines a mall location filter with the drink category filter", () => {
+    const result = filterStoreGroups(groups, "coffee", "mall-1");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("mall-1");
+    expect(result[0].stores.map((store) => store.id)).toEqual(["coffee"]);
+  });
+
+  it("can isolate unmatched street stores independently of category", () => {
+    const result = filterStoreGroups(groups, "tea_drink", "street");
+    expect(result.map((group) => group.id)).toEqual(["street"]);
+    expect(result[0].stores.map((store) => store.id)).toEqual(["juice"]);
   });
 });

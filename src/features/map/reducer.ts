@@ -14,10 +14,12 @@ export type MapStatus =
   | "error";
 
 export type MapFilter = "all" | "tea_drink" | "coffee";
+export type GroupFilter = "all" | string;
 
 export type MapState = {
   status: MapStatus;
   filter: MapFilter;
+  groupFilter: GroupFilter;
   drawerOpen: boolean;
   selectedId: string | null;
   data: NearbyResponse | null;
@@ -37,6 +39,7 @@ export type MapAction =
   | { type: "LOAD_SUCCESS"; payload: NearbyResponse }
   | { type: "LOAD_ERROR"; error: NearbyErrorBody["error"] }
   | { type: "SET_FILTER"; filter: MapFilter }
+  | { type: "SET_GROUP_FILTER"; groupFilter: GroupFilter }
   | { type: "SELECT"; id: string | null }
   | { type: "SET_DRAWER"; open: boolean }
   | { type: "CORRECTION_SUCCESS" }
@@ -45,6 +48,7 @@ export type MapAction =
 export const initialMapState: MapState = {
   status: "permission",
   filter: "all",
+  groupFilter: "all",
   drawerOpen: true,
   selectedId: null,
   data: null,
@@ -73,12 +77,14 @@ export function mapReducer(state: MapState, action: MapAction): MapState {
               : action.payload.groups.length === 0
                 ? "empty"
                 : "ready-nearby";
-      return { ...state, status, data: action.payload, error: null };
+      return { ...state, status, data: action.payload, groupFilter: "all", error: null };
     }
     case "LOAD_ERROR":
       return { ...state, status: "error", error: action.error };
     case "SET_FILTER":
       return { ...state, filter: action.filter };
+    case "SET_GROUP_FILTER":
+      return { ...state, groupFilter: action.groupFilter, selectedId: null };
     case "SELECT":
       return { ...state, selectedId: action.id, drawerOpen: action.id ? true : state.drawerOpen };
     case "SET_DRAWER":

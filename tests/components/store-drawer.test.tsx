@@ -31,14 +31,17 @@ const groups: StoreGroup[] = [
 function DrawerHarness(props: { onSelectGroup?: (id: string) => void; onSelectStore?: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
   const [filter, setFilter] = useState<MapFilter>("all");
+  const [groupFilter, setGroupFilter] = useState("all");
   return (
     <StoreDrawer
       groups={groups}
       filter={filter}
+      groupFilter={groupFilter}
       selectedId={null}
       expanded={expanded}
       onExpandedChange={setExpanded}
       onFilterChange={setFilter}
+      onGroupFilterChange={setGroupFilter}
       onSelectGroup={props.onSelectGroup ?? vi.fn()}
       onSelectStore={props.onSelectStore ?? vi.fn()}
     />
@@ -66,6 +69,18 @@ describe("StoreDrawer", () => {
     expect(screen.getByRole("button", { name: "选择喜茶" })).toBeInTheDocument();
     expect(screen.getByText("鲜果饮品")).toBeInTheDocument();
     expect(screen.queryByText("M Stand")).not.toBeInTheDocument();
+  });
+
+  it("lists only non-empty nearby locations and filters the drawer by mall", async () => {
+    render(<DrawerHarness />);
+    expect(screen.getByRole("tab", { name: "全部地点 3" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "上海国金中心 2" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "周边街铺 1" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "上海国金中心 2" }));
+    expect(screen.getByRole("button", { name: "选择喜茶" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "选择M Stand" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "选择鲜果饮品" })).not.toBeInTheDocument();
   });
 
   it("forwards group and store selection", async () => {

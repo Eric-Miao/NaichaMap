@@ -3,43 +3,39 @@
 import { useRef } from "react";
 
 import type { StoreGroup as StoreGroupType } from "@/features/nearby/contracts";
-import type { MapFilter } from "@/features/map/reducer";
+import type { GroupFilter, MapFilter } from "@/features/map/reducer";
+import { filterStoreGroups } from "@/features/map/selectors";
 
 import styles from "../map/map-ui.module.css";
 import { CategoryTabs } from "./category-tabs";
+import { LocationTabs } from "./location-tabs";
 import { StoreGroup } from "./store-group";
-
-function visibleGroups(groups: StoreGroupType[], filter: MapFilter) {
-  if (filter === "all") return groups;
-  return groups.flatMap((group) => {
-    const stores = group.stores.filter((store) =>
-      filter === "tea_drink" ? store.category !== "coffee" : store.category === "coffee",
-    );
-    return stores.length ? [{ ...group, stores } as StoreGroupType] : [];
-  });
-}
 
 export function StoreDrawer({
   groups,
   filter,
+  groupFilter,
   selectedId,
   expanded,
   onExpandedChange,
   onFilterChange,
+  onGroupFilterChange,
   onSelectGroup,
   onSelectStore,
 }: {
   groups: StoreGroupType[];
   filter: MapFilter;
+  groupFilter: GroupFilter;
   selectedId: string | null;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
   onFilterChange: (filter: MapFilter) => void;
+  onGroupFilterChange: (filter: GroupFilter) => void;
   onSelectGroup: (id: string) => void;
   onSelectStore: (id: string) => void;
 }) {
   const touchStartY = useRef<number | null>(null);
-  const filtered = visibleGroups(groups, filter);
+  const filtered = filterStoreGroups(groups, filter, groupFilter);
   const count = groups.reduce((total, group) => total + group.stores.length, 0);
 
   return (
@@ -65,6 +61,7 @@ export function StoreDrawer({
         <h2>附近好喝的</h2>
         <span>{count} 家</span>
       </div>
+      <LocationTabs groups={groups} value={groupFilter} onChange={onGroupFilterChange} />
       <CategoryTabs groups={groups} value={filter} onChange={onFilterChange} />
       <div className={styles.list}>
         {filtered.map((group) => (

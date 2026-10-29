@@ -221,6 +221,10 @@
   display: none;
 }
 
+.locationTabs {
+  padding-bottom: var(--space-2);
+}
+
 .tab {
   min-height: 44px;
   flex: none;

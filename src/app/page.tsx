@@ -54,9 +54,9 @@ export default function HomePage() {
 
   if (!state.data || !mapCenter) return <PageStatus kind="loading" />;
 
-  const title = state.data.currentMall?.name ?? placeLabel ?? "附近好喝的";
+  const title = placeLabel ?? "附近好喝的";
   const storeCount = state.data.groups.reduce((total, group) => total + group.stores.length, 0);
-  const subtitle = state.data.currentMall ? `定位成功 · 商场内及附近共 ${storeCount} 家` : `附近 1 公里 · 共 ${storeCount} 家`;
+  const subtitle = `附近 1 公里 · 共 ${storeCount} 家`;
 
   return (
     <div className={styles.page}>
@@ -74,10 +74,12 @@ export default function HomePage() {
         userPoint={mapCenter}
         groups={state.data.groups}
         filter={state.filter}
+        groupFilter={state.groupFilter}
         selectedId={state.selectedId}
         drawerExpanded={state.drawerOpen}
         onDrawerExpandedChange={(open) => dispatch({ type: "SET_DRAWER", open })}
         onFilterChange={(filter) => dispatch({ type: "SET_FILTER", filter })}
+        onGroupFilterChange={(groupFilter) => dispatch({ type: "SET_GROUP_FILTER", groupFilter })}
         onSelectGroup={(id) => dispatch({ type: "SELECT", id })}
         onSelectStore={(id) => dispatch({ type: "SELECT", id })}
       />

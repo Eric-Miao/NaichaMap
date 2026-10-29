@@ -1,7 +1,7 @@
 "use client";
 
 import type { StoreGroup } from "@/features/nearby/contracts";
-import type { MapFilter } from "@/features/map/reducer";
+import type { GroupFilter, MapFilter } from "@/features/map/reducer";
 import type { GeoPoint } from "@/lib/geo/coordinates";
 import { filterStoreGroups } from "@/features/map/selectors";
 
@@ -16,10 +16,12 @@ export function MapShell({
   userPoint,
   groups,
   filter,
+  groupFilter,
   selectedId,
   drawerExpanded,
   onDrawerExpandedChange,
   onFilterChange,
+  onGroupFilterChange,
   onSelectGroup,
   onSelectStore,
 }: {
@@ -29,10 +31,12 @@ export function MapShell({
   userPoint: GeoPoint;
   groups: StoreGroup[];
   filter: MapFilter;
+  groupFilter: GroupFilter;
   selectedId: string | null;
   drawerExpanded: boolean;
   onDrawerExpandedChange: (expanded: boolean) => void;
   onFilterChange: (filter: MapFilter) => void;
+  onGroupFilterChange: (filter: GroupFilter) => void;
   onSelectGroup: (id: string) => void;
   onSelectStore: (id: string) => void;
 }) {
@@ -58,7 +62,7 @@ export function MapShell({
       <StoreMap
         styleUrl={styleUrl}
         userPoint={userPoint}
-        groups={filterStoreGroups(groups, filter)}
+        groups={filterStoreGroups(groups, filter, groupFilter)}
         selectedId={selectedId}
         onSelectGroup={selectGroup}
         onSelectStore={selectStore}
@@ -66,10 +70,12 @@ export function MapShell({
       <StoreDrawer
         groups={groups}
         filter={filter}
+        groupFilter={groupFilter}
         selectedId={selectedId}
         expanded={drawerExpanded}
         onExpandedChange={onDrawerExpandedChange}
         onFilterChange={onFilterChange}
+        onGroupFilterChange={onGroupFilterChange}
         onSelectGroup={selectGroup}
         onSelectStore={selectStore}
       />
