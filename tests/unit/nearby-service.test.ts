@@ -129,6 +129,26 @@ describe("createNearbyService", () => {
     );
   });
 
+  it("retains newly saved malls when the persisted candidate listing omits them", async () => {
+    const deps = dependencies();
+    vi.mocked(deps.repository.getCacheState).mockResolvedValueOnce(null);
+    vi.mocked(deps.repository.getNearby).mockResolvedValueOnce([]).mockResolvedValueOnce([dbStore]);
+    vi.mocked(deps.repository.claimSearchArea).mockResolvedValueOnce({
+      shouldFetch: true,
+      leaseToken: "lease-1",
+      hasStaleData: false,
+    });
+    vi.mocked(deps.repository.saveMalls).mockResolvedValueOnce([fetchedMall]);
+    vi.mocked(deps.repository.listMallCandidates).mockResolvedValueOnce([persistedMall]);
+
+    await createNearbyService(deps)(point);
+
+    expect(deps.repository.saveStores).toHaveBeenCalledWith(
+      [normalizedPoi],
+      [persistedMall, fetchedMall],
+    );
+  });
+
   it("does not infer closures from a non-authoritative provider refresh", async () => {
     const deps = dependencies();
     vi.mocked(deps.repository.getCacheState).mockResolvedValueOnce(null);

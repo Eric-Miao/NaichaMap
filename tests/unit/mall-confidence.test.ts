@@ -39,6 +39,29 @@ describe("mall confidence", () => {
     ])?.id).toBe("mall-1");
   });
 
+  it("prefers an exact provider parent over an earlier name-only match", () => {
+    const nameOnlyMall = {
+      ...mall,
+      id: "mall-name-only",
+      providerPlaceId: "OTHER-PARENT",
+      name: "甲乙广场",
+      boundary: null,
+    };
+    const exactParentMall = {
+      ...mall,
+      id: "mall-exact-parent",
+      providerPlaceId: "PARENT-1",
+      name: "甲乙二期广场",
+      boundary: null,
+    };
+
+    expect(resolveMallForStore({
+      ...store,
+      name: "喜茶（甲乙广场店）",
+      address: "甲乙广场一层",
+    }, [nameOnlyMall, exactParentMall])?.id).toBe("mall-exact-parent");
+  });
+
   it("accepts normalized mall text within 500 metres without a provider parent", () => {
     expect(resolveMallForStore({
       ...store,

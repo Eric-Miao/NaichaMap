@@ -61,16 +61,21 @@ export function resolveMallForStore(store: StoreMallEvidence, malls: MallCandida
   );
   if (boundaryMatch) return boundaryMatch;
 
-  const storeText = normalizeMallName(`${store.name}${store.address}`);
-  return (
-    malls.find((mall) => {
-      const mallName = normalizeMallName(mall.name);
-      const nearby = distanceMeters(store.location, mall.location) <= 500;
-      const parentMatches = Boolean(store.providerParentId) && store.providerParentId === mall.providerPlaceId;
-      const nameMatches = mallName.length >= 2 && storeText.includes(mallName);
-      return (
-        nearby && (parentMatches || nameMatches)
-      );
-    }) ?? null
+  const parentMatch = malls.find(
+    (mall) =>
+      distanceMeters(store.location, mall.location) <= 500 &&
+      Boolean(store.providerParentId) &&
+      store.providerParentId === mall.providerPlaceId,
   );
+  if (parentMatch) return parentMatch;
+
+  const storeText = normalizeMallName(`${store.name}${store.address}`);
+  return malls.find((mall) => {
+    const mallName = normalizeMallName(mall.name);
+    return (
+      distanceMeters(store.location, mall.location) <= 500 &&
+      mallName.length >= 2 &&
+      storeText.includes(mallName)
+    );
+  }) ?? null;
 }

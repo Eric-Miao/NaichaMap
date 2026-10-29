@@ -8,6 +8,7 @@ import {
   type GeoPoint,
 } from "@/lib/geo/coordinates";
 import { getSearchCell } from "@/lib/geo/grid";
+import { collectAllPages } from "@/lib/supabase/pagination";
 import { createAdminClient } from "@/lib/supabase/server";
 
 import type { CacheStatus, MallSummary, NearbyInput, NearbyResponse, StoreGroup } from "./contracts";
@@ -216,8 +217,11 @@ export function createNearbyService(deps: NearbyDependencies) {
       });
       const stores = [...new Map(fetchedStores.map((store) => [store.providerPlaceId, store])).values()];
       stage = "persistence";
-      await deps.repository.saveMalls(fetchedMalls);
-      const currentMalls = await deps.repository.listMallCandidates();
+      const savedMalls = await deps.repository.saveMalls(fetchedMalls);
+      const persistedMalls = await deps.repository.listMallCandidates();
+      const currentMalls = [...new Map(
+        [...persistedMalls, ...savedMalls].map((mall) => [mall.id, mall]),
+      ).values()];
       await deps.repository.saveStores(stores, currentMalls);
 
       await deps.repository.finishSearchArea(claim.leaseToken, stores.length, true);
@@ -391,10 +395,15 @@ function createRepository(): NearbyRepository {
       if (error) throw error;
     },
     async listMallCandidates() {
-      const { data, error } = await client
-        .from("malls")
-        .select("id,provider_place_id,name,address,location_wgs84,boundary_wgs84");
-      if (error) throw error;
+      const data = await collectAllPages(async (from, to) => {
+        const { data: page, error } = await client
+          .from("malls")
+          .select("id,provider_place_id,name,address,location_wgs84,boundary_wgs84")
+          .order("id", { ascending: true })
+          .range(from, to);
+        if (error) throw error;
+        return page;
+      });
       return data
         .map((mall) => {
           const location = parsePoint(mall.location_wgs84);
