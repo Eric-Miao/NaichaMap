@@ -14,7 +14,7 @@ export function getSearchCell(point: GeoPoint): SearchCell {
   const latIndex = Math.floor(point.lat / CELL_SIZE);
 
   return {
-    id: `v3:${lngIndex}:${latIndex}`,
+    id: `v4:${lngIndex}:${latIndex}`,
     center: {
       lng: Number(((lngIndex + 0.5) * CELL_SIZE).toFixed(6)),
       lat: Number(((latIndex + 0.5) * CELL_SIZE).toFixed(6)),

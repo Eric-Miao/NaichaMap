@@ -4,7 +4,7 @@ import { getSearchCell } from "../../src/lib/geo/grid";
 
 describe("getSearchCell", () => {
   it("versions cache cells for multi-source mall reassignment", () => {
-    expect(getSearchCell({ lng: 121.4737, lat: 31.2304 }).id).toMatch(/^v3:/);
+    expect(getSearchCell({ lng: 121.4737, lat: 31.2304 }).id).toMatch(/^v4:/);
   });
 
   it("puts nearby points into one 0.005° cell", () => {

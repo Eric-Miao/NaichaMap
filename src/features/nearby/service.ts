@@ -8,6 +8,7 @@ import {
   type GeoPoint,
 } from "@/lib/geo/coordinates";
 import { getSearchCell } from "@/lib/geo/grid";
+import { parsePostgisPoint, parsePostgisPolygon } from "@/lib/geo/postgis";
 import { collectAllPages } from "@/lib/supabase/pagination";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -243,32 +244,6 @@ export function createNearbyService(deps: NearbyDependencies) {
   };
 }
 
-function parsePoint(value: unknown): GeoPoint | null {
-  if (value && typeof value === "object" && "coordinates" in value) {
-    const coordinates = (value as { coordinates?: unknown }).coordinates;
-    if (Array.isArray(coordinates) && coordinates.length >= 2) {
-      const [lng, lat] = coordinates.map(Number);
-      if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng, lat };
-    }
-  }
-  return null;
-}
-
-function parseBoundary(value: unknown): GeoPoint[] | null {
-  if (value && typeof value === "object" && "coordinates" in value) {
-    const rings = (value as { coordinates?: unknown }).coordinates;
-    if (Array.isArray(rings) && Array.isArray(rings[0])) {
-      const points = (rings[0] as unknown[])
-        .map((coordinate) =>
-          Array.isArray(coordinate) ? { lng: Number(coordinate[0]), lat: Number(coordinate[1]) } : null,
-        )
-        .filter((point): point is GeoPoint => Boolean(point && Number.isFinite(point.lng) && Number.isFinite(point.lat)));
-      return points.length >= 3 ? points : null;
-    }
-  }
-  return null;
-}
-
 function createRepository(): NearbyRepository {
   const client = createAdminClient();
   let activeCellId = "";
@@ -348,8 +323,8 @@ function createRepository(): NearbyRepository {
         providerPlaceId: mall.provider_place_id,
         name: mall.name,
         address: mall.address,
-        location: parsePoint(mall.location_wgs84) ?? { lng: 0, lat: 0 },
-        boundary: parseBoundary(mall.boundary_wgs84),
+        location: parsePostgisPoint(mall.location_wgs84) ?? { lng: 0, lat: 0 },
+        boundary: parsePostgisPolygon(mall.boundary_wgs84),
       }));
     },
     async saveStores(stores, malls) {
@@ -406,7 +381,7 @@ function createRepository(): NearbyRepository {
       });
       return data
         .map((mall) => {
-          const location = parsePoint(mall.location_wgs84);
+          const location = parsePostgisPoint(mall.location_wgs84);
           return location
             ? {
                 id: mall.id,
@@ -414,7 +389,7 @@ function createRepository(): NearbyRepository {
                 name: mall.name,
                 address: mall.address,
                 location,
-                boundary: parseBoundary(mall.boundary_wgs84),
+                boundary: parsePostgisPolygon(mall.boundary_wgs84),
               }
             : null;
         })

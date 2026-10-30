@@ -62,6 +62,22 @@ describe("mall confidence", () => {
     }, [nameOnlyMall, exactParentMall])?.id).toBe("mall-exact-parent");
   });
 
+  it("prefers boundary containment over a conflicting provider parent", () => {
+    const conflictingParent = {
+      ...mall,
+      id: "mall-conflicting-parent",
+      boundary: null,
+    };
+    const containingMall = {
+      ...mall,
+      id: "mall-containing",
+      providerPlaceId: "OTHER-PARENT",
+    };
+
+    expect(resolveMallForStore(store, [conflictingParent, containingMall])?.id)
+      .toBe("mall-containing");
+  });
+
   it("accepts normalized mall text within 500 metres without a provider parent", () => {
     expect(resolveMallForStore({
       ...store,
