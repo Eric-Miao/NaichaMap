@@ -1,9 +1,11 @@
 .shell {
   position: relative;
   display: flex;
-  min-height: 100svh;
+  height: 100svh;
+  min-height: 0;
   flex-direction: column;
   overflow: hidden;
+  overscroll-behavior: none;
   background: var(--color-canvas);
   color: var(--color-text);
 }
@@ -151,6 +153,7 @@
   height: min(76svh, 680px);
   flex-direction: column;
   overflow: hidden;
+  overscroll-behavior: contain;
   border-radius: var(--radius-surface) var(--radius-surface) 0 0;
   background: var(--color-surface);
   box-shadow: 0 -12px 32px rgb(58 46 34 / 13%);
@@ -173,6 +176,8 @@
   border: 0;
   background: transparent;
   cursor: pointer;
+  touch-action: none;
+  user-select: none;
 }
 
 .drawerHandle::before {
@@ -253,7 +258,9 @@
   min-height: 0;
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 0 var(--content-rail) max(20px, env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
   scrollbar-color: #b6a999 transparent;
   scrollbar-width: thin;
 }

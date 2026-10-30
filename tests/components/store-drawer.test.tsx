@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -58,6 +58,38 @@ describe("StoreDrawer", () => {
     expect(screen.getByRole("tab", { name: "咖啡 1" })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "展开门店列表" }));
+    expect(drawer).toHaveAttribute("data-state", "expanded");
+  });
+
+  it("keeps a downward swipe collapsed when the browser follows with a click", async () => {
+    render(<DrawerHarness />);
+    const drawer = screen.getByTestId("store-drawer");
+    const handle = screen.getByRole("button", { name: "展开门店列表" });
+    await userEvent.click(handle);
+    expect(drawer).toHaveAttribute("data-state", "expanded");
+
+    fireEvent.touchStart(handle, { touches: [{ clientY: 100 }] });
+    fireEvent.touchEnd(handle, { changedTouches: [{ clientY: 180 }] });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fireEvent.click(handle, { detail: 1 });
+
+    expect(drawer).toHaveAttribute("data-state", "collapsed");
+  });
+
+  it("allows a fresh tap when a swipe produced no compatibility click", async () => {
+    render(<DrawerHarness />);
+    const drawer = screen.getByTestId("store-drawer");
+    const handle = screen.getByRole("button", { name: "展开门店列表" });
+    await userEvent.click(handle);
+
+    fireEvent.touchStart(handle, { touches: [{ clientY: 100 }] });
+    fireEvent.touchEnd(handle, { changedTouches: [{ clientY: 180 }] });
+    expect(drawer).toHaveAttribute("data-state", "collapsed");
+
+    fireEvent.touchStart(handle, { touches: [{ clientY: 180 }] });
+    fireEvent.touchEnd(handle, { changedTouches: [{ clientY: 182 }] });
+    fireEvent.click(handle, { detail: 1 });
+
     expect(drawer).toHaveAttribute("data-state", "expanded");
   });
 

@@ -35,6 +35,7 @@ export function StoreDrawer({
   onSelectStore: (id: string) => void;
 }) {
   const touchStartY = useRef<number | null>(null);
+  const suppressClick = useRef(false);
   const filtered = filterStoreGroups(groups, filter, groupFilter);
   const groupsForLocationCounts = filterStoreGroups(groups, filter);
   const groupsForCategoryCounts = filterStoreGroups(groups, "all", groupFilter);
@@ -46,8 +47,16 @@ export function StoreDrawer({
         type="button"
         className={styles.drawerHandle}
         aria-label={expanded ? "收起门店列表" : "展开门店列表"}
-        onClick={() => onExpandedChange(!expanded)}
+        onClick={(event) => {
+          if (suppressClick.current && event.detail > 0) {
+            suppressClick.current = false;
+            return;
+          }
+          suppressClick.current = false;
+          onExpandedChange(!expanded);
+        }}
         onTouchStart={(event) => {
+          suppressClick.current = false;
           touchStartY.current = event.touches[0]?.clientY ?? null;
         }}
         onTouchEnd={(event) => {
@@ -55,8 +64,13 @@ export function StoreDrawer({
           const end = event.changedTouches[0]?.clientY;
           touchStartY.current = null;
           if (start == null || end == null) return;
-          if (start - end > 30) onExpandedChange(true);
-          if (end - start > 30) onExpandedChange(false);
+          if (Math.abs(end - start) <= 30) return;
+          suppressClick.current = true;
+          onExpandedChange(end < start);
+        }}
+        onTouchCancel={() => {
+          touchStartY.current = null;
+          suppressClick.current = false;
         }}
       />
       <div className={styles.drawerHeading}>

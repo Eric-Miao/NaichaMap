@@ -135,6 +135,32 @@ test("location and category filters apply together to the map and list", async (
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 
+test("drawer swipe owns the gesture without scrolling or reopening", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+
+  const drawer = page.getByTestId("store-drawer");
+  const handle = page.getByRole("button", { name: "收起门店列表" });
+  await expect(drawer).toHaveAttribute("data-state", "expanded");
+  await expect(handle).toHaveCSS("touch-action", "none");
+
+  await handle.evaluate((element) => {
+    const start = new Touch({ identifier: 0, target: element, clientX: 180, clientY: 100 });
+    const end = new Touch({ identifier: 0, target: element, clientX: 180, clientY: 180 });
+    element.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, cancelable: true, touches: [start] }));
+    element.dispatchEvent(new TouchEvent("touchend", { bubbles: true, cancelable: true, changedTouches: [end] }));
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 }));
+  });
+
+  await expect(drawer).toHaveAttribute("data-state", "collapsed");
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  expect(await page.getByTestId("store-drawer").locator("div").last().evaluate(
+    (element) => getComputedStyle(element).overscrollBehaviorY,
+  )).toBe("contain");
+});
+
 test("map drawer uses one content rail and stays within a 360px viewport", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await mockLocation(page, "success");
