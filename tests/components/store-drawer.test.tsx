@@ -83,6 +83,20 @@ describe("StoreDrawer", () => {
     expect(screen.queryByRole("button", { name: "选择鲜果饮品" })).not.toBeInTheDocument();
   });
 
+  it("updates each filter row from the other filter selection", async () => {
+    render(<DrawerHarness />);
+
+    await userEvent.click(screen.getByRole("tab", { name: "上海国金中心 2" }));
+    expect(screen.getByRole("tab", { name: "全部 2" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "茶饮 1" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "咖啡 1" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "咖啡 1" }));
+    expect(screen.getByRole("tab", { name: "全部地点 1" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "上海国金中心 1" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "周边街铺 0" })).toBeDisabled();
+  });
+
   it("forwards group and store selection", async () => {
     const onSelectGroup = vi.fn();
     const onSelectStore = vi.fn();

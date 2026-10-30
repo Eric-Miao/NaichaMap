@@ -123,10 +123,15 @@ test("location and category filters apply together to the map and list", async (
   await page.getByRole("tab", { name: "上海国金中心 2" }).click();
   await expect(page.getByRole("button", { name: "选择鲜果饮品" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "上海国金中心，2 家门店" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "全部 2" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "茶饮 1" })).toBeVisible();
   await page.getByRole("tab", { name: "咖啡 1" }).click();
   await expect(page.getByRole("button", { name: "上海国金中心，1 家门店" })).toBeVisible();
   await expect(page.getByRole("button", { name: "选择M Stand" })).toBeVisible();
   await expect(page.getByRole("button", { name: "选择喜茶" })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "全部地点 1" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "上海国金中心 1" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "周边街铺 0" })).toBeDisabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 

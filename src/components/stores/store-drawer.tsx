@@ -36,6 +36,8 @@ export function StoreDrawer({
 }) {
   const touchStartY = useRef<number | null>(null);
   const filtered = filterStoreGroups(groups, filter, groupFilter);
+  const groupsForLocationCounts = filterStoreGroups(groups, filter);
+  const groupsForCategoryCounts = filterStoreGroups(groups, "all", groupFilter);
   const count = groups.reduce((total, group) => total + group.stores.length, 0);
 
   return (
@@ -61,8 +63,13 @@ export function StoreDrawer({
         <h2>附近好喝的</h2>
         <span>{count} 家</span>
       </div>
-      <LocationTabs groups={groups} value={groupFilter} onChange={onGroupFilterChange} />
-      <CategoryTabs groups={groups} value={filter} onChange={onFilterChange} />
+      <LocationTabs
+        groups={groups}
+        countGroups={groupsForLocationCounts}
+        value={groupFilter}
+        onChange={onGroupFilterChange}
+      />
+      <CategoryTabs groups={groupsForCategoryCounts} value={filter} onChange={onFilterChange} />
       <div className={styles.list}>
         {filtered.map((group) => (
           <StoreGroup

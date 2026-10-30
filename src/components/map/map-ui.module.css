@@ -244,6 +244,11 @@
   color: var(--color-action-text);
 }
 
+.tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .list {
   min-height: 0;
   flex: 1;

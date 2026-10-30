@@ -32,6 +32,7 @@ export function CategoryTabs({
           className={styles.tab}
           role="tab"
           aria-selected={value === tab.value}
+          disabled={tab.count === 0 && value !== tab.value}
           onClick={() => onChange(tab.value)}
         >
           {tab.label} {tab.count}
