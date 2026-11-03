@@ -50,8 +50,9 @@ type NearbyRepository = {
 
 ## 客户端状态
 
-- `reducer.ts`：11 个状态收敛为 `permission / locating / loading-cache / refreshing / ready / stale / denied / unavailable / empty / error`；新数据加载会重置筛选和选中项。
+- `reducer.ts`：状态收敛为 `permission / locating / loading-cache / refreshing / ready / stale / denied / unavailable / empty / error`；`screen` 和 `placeLabel` 也在这里，保证 URL、标题和页面模式一致。新数据加载会重置筛选和选中项。
 - `use-nearby.ts`：串行化请求（新请求 abort 旧请求），保存**真实用户坐标**而不是缓存网格中心。
+- `url.ts`：解析/序列化 `mode / lat / lng / place / filter / group / selected / drawer`，无效值安全回退。
 - `selectors.ts`：`buildDirectoryView(groups, filter, groupFilter, currentMallId)` 是地图和列表的唯一数据源，产出：
   - 过滤后的分组；
   - 两组筛选各自的计数；
@@ -59,16 +60,26 @@ type NearbyRepository = {
   - 每个分组的序号区间。
 - 选中态、筛选态和抽屉态都在 reducer 里，组件只派发动作。
 
+## URL 状态
+
+- 入口是 `/`，搜索页是 `?mode=search`，地点页带 `lat/lng/place` 和可选的 `filter/group/selected/drawer`。
+- 首次挂载解析 URL；有坐标时直接加载，不请求定位权限。深链的筛选/选中在数据返回后一次性应用。
+- 新增地点用 `pushState`，筛选/选中/抽屉用 `replaceState`；进入搜索页也 push，浏览器前进/后退可以回到入口、搜索页或上一个地点。
+- `popstate` 时按 URL 恢复：不同坐标重新加载，同坐标只应用视图；回到入口则 `RESET` 并清空用户坐标。
+- URL 是原生 History API，不经过 Next 路由，避免整页请求。
+
 ## 地图
 
 - 附近半径 500 米；高德抓取半径 900 米。两者都是 `src/lib/geo/search.ts` 的常量。
 - 默认底图是 CARTO Positron（OSM 数据、WGS84、无需 key）。`NEXT_PUBLIC_MAP_STYLE_URL` 可覆盖；样式报错或 9 秒未加载会自动切换 OpenFreeMap Positron，再失败才显示示意网格。
 - 门店以 WGS84 存储；调用高德时转换为 GCJ-02。
-- `lib/geo/viewport.ts` 用 Web Mercator 自行拟合中心与缩放，并把经纬度投影成 CSS 像素；MapLibre 只负责底图，标记与底图共享同一套 `fitMapView` 结果，因此标记始终贴合真实坐标。
+- `lib/geo/viewport.ts` 用 Web Mercator 自行拟合中心与缩放，并把经纬度投影成 CSS 像素；缩放采用 MapLibre 的 512px 瓦片约定，标记与底图共享同一套投影，因此标记始终贴合真实坐标。
+- 地图可拖动/缩放（禁用旋转和倾斜）。`move`/`zoom` 事件把真实中心与缩放同步到 `liveView`，标记跟着实时投影；只有数据或容器尺寸变化时才重新拟合。
+- 右下角比例尺由 `scaleBar(view)` 计算；移动地图后出现“回到门店范围”，`easeTo` 回到 `fitView`。
 - 地图容器由 `ResizeObserver` 驱动重新拟合；目录展开时地图变窄，收起后恢复。
-- 目录展开到只剩窄条时，标记层只保留“我的位置”点，避免堆叠。
+- 目录展开到只剩窄条时，标记层只保留“我的位置”点和选中标记，避免堆叠。
 - `setWorkerUrl("/maplibre/maplibre-gl-worker.mjs")` 解决 Next/Turbopack 下 MapLibre worker chunk 无法加载的问题；该文件由 `scripts/copy-maplibre-worker.mjs` 在 `predev`、`prebuild`、`postinstall` 生成，不提交仓库。
-- 未配置 `NEXT_PUBLIC_MAP_STYLE_URL` 或底图报错时，展示带注册网格的“示意视图”，标记仍按真实坐标缩放。
+- 默认 OSM 样式或 OpenFreeMap 都失败时，展示带注册网格的“示意视图”，标记仍按真实坐标缩放。
 
 ## 组件
 
@@ -80,7 +91,7 @@ type NearbyRepository = {
 
 ## 测试策略
 
-- `tests/unit/*`：纯函数、路由、环境变量、投影、选择器、仓储调用顺序。
+- `tests/unit/*`：纯函数、路由、环境变量、投影、比例尺、URL、选择器、仓储调用顺序。
 - `tests/components/*`：可访问名称、筛选联动、空态、复制反馈、弹窗键盘行为。
-- `tests/e2e/*`：真实浏览器里的定位、筛选、地图/列表联动、抽屉手势、桌面布局、纠错限流。
+- `tests/e2e/*`：真实浏览器里的定位、筛选、地图/列表联动、地图拖动与复位、标记动画、URL 刷新/前进后退、抽屉手势、桌面布局、纠错限流。
 - 任何新交互都应先加一个失败断言，再实现。

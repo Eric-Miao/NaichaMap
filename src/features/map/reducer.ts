@@ -17,6 +17,8 @@ export type GroupFilter = "all" | string;
 
 export type MapState = {
   status: MapStatus;
+  screen: "app" | "search";
+  placeLabel: string | null;
   filter: MapFilter;
   groupFilter: GroupFilter;
   drawerOpen: boolean;
@@ -37,15 +39,20 @@ export type MapAction =
   | { type: "REFRESH_START" }
   | { type: "LOAD_SUCCESS"; payload: NearbyResponse }
   | { type: "LOAD_ERROR"; error: NearbyErrorBody["error"] }
+  | { type: "SET_SCREEN"; screen: "app" | "search" }
+  | { type: "SET_PLACE_LABEL"; label: string | null }
   | { type: "SET_FILTER"; filter: MapFilter }
   | { type: "SET_GROUP_FILTER"; groupFilter: GroupFilter }
   | { type: "SELECT"; id: string | null }
   | { type: "SET_DRAWER"; open: boolean }
   | { type: "CORRECTION_SUCCESS" }
-  | { type: "CORRECTION_RATE_LIMITED"; retryAfterSeconds: number };
+  | { type: "CORRECTION_RATE_LIMITED"; retryAfterSeconds: number }
+  | { type: "RESET" };
 
 export const initialMapState: MapState = {
   status: "permission",
+  screen: "app",
+  placeLabel: null,
   filter: "all",
   groupFilter: "all",
   drawerOpen: false,
@@ -86,6 +93,10 @@ export function mapReducer(state: MapState, action: MapAction): MapState {
     }
     case "LOAD_ERROR":
       return { ...state, status: "error", error: action.error };
+    case "SET_SCREEN":
+      return { ...state, screen: action.screen };
+    case "SET_PLACE_LABEL":
+      return { ...state, placeLabel: action.label };
     case "SET_FILTER":
       return { ...state, filter: action.filter, selectedId: null };
     case "SET_GROUP_FILTER":
@@ -101,5 +112,7 @@ export function mapReducer(state: MapState, action: MapAction): MapState {
         ...state,
         correction: { status: "rate-limited", retryAfterSeconds: action.retryAfterSeconds },
       };
+    case "RESET":
+      return initialMapState;
   }
 }

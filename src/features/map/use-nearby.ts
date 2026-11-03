@@ -49,7 +49,14 @@ export function useNearby() {
 
   const retry = useCallback(() => requestLocation(), [requestLocation]);
 
+  const reset = useCallback(() => {
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setUserPoint(null);
+    dispatch({ type: "RESET" });
+  }, []);
+
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  return { state, dispatch, requestLocation, retry, loadAt: load, userPoint };
+  return { state, dispatch, requestLocation, retry, reset, loadAt: load, userPoint };
 }

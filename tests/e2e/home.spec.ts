@@ -24,9 +24,18 @@ const mallResponse = {
   cacheStatus: "fresh",
 };
 
+const testStyle = {
+  version: 8,
+  sources: {},
+  layers: [{ id: "background", type: "background", paint: { "background-color": "#f6f0e5" } }],
+};
+
 test.beforeEach(async ({ context, page }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.route("**/api/nearby", (route) => route.fulfill({ json: mallResponse }));
+  // Keep the browser test deterministic: the map transform and markers are what
+  // these tests exercise, not the CDN availability of the basemap tiles.
+  await page.route("**/positron-gl-style/style.json", (route) => route.fulfill({ json: testStyle }));
 });
 
 async function mockLocation(page: import("@playwright/test").Page, mode: "success" | "denied") {
@@ -221,6 +230,79 @@ test("correction dialog centers on desktop and keeps aligned form controls", asy
   });
   expect(Math.abs(geometry.dialogCenter - geometry.viewportCenter)).toBeLessThanOrEqual(2);
   expect(Math.max(...geometry.widths) - Math.min(...geometry.widths)).toBeLessThanOrEqual(1);
+});
+
+test("the URL keeps the view and restores it after a reload", async ({ page }) => {
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+  await page.getByRole("button", { name: "展开门店列表" }).click();
+  await page.getByRole("button", { name: "咖啡 1" }).click();
+
+  await expect(page).toHaveURL(/filter=coffee/);
+  await expect(page).toHaveURL(/lat=/);
+
+  await page.reload();
+  await expect(page.getByRole("button", { name: "咖啡 1" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "选择M Stand" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "选择喜茶" })).toHaveCount(0);
+  await expect(page.getByTestId("store-drawer")).toHaveAttribute("data-state", "expanded");
+});
+
+test("browser back and forward move between search and the entry", async ({ page }) => {
+  await mockLocation(page, "success");
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "搜索商场或地点" }).click();
+  await expect(page).toHaveURL(/mode=search/);
+  await expect(page.getByRole("searchbox", { name: "搜索上海商场或地点" })).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByRole("button", { name: "使用我的位置" })).toBeVisible();
+
+  await page.goForward();
+  await expect(page.getByRole("searchbox", { name: "搜索上海商场或地点" })).toBeVisible();
+});
+
+test("map pans with a drag, keeps markers attached and can reset", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+
+  const mall = page.getByRole("button", { name: "上海国金中心，2 家门店" });
+  await expect(mall).toBeVisible();
+  const before = await mall.boundingBox();
+  expect(before).not.toBeNull();
+
+  await page.mouse.move(320, 210);
+  await page.mouse.down();
+  await page.mouse.move(240, 210, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForTimeout(450);
+
+  const after = await mall.boundingBox();
+  expect(after).not.toBeNull();
+  expect(Math.abs(after!.x - before!.x)).toBeGreaterThan(20);
+
+  const reset = page.getByRole("button", { name: "回到门店范围" });
+  await expect(reset).toBeVisible();
+  await reset.click();
+  await page.waitForTimeout(900);
+
+  const restored = await mall.boundingBox();
+  expect(Math.abs(restored!.x - before!.x)).toBeLessThan(10);
+  expect(Math.abs(restored!.y - before!.y)).toBeLessThan(10);
+});
+
+test("selected map markers play their press animation", async ({ page }) => {
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+
+  const mall = page.getByRole("button", { name: "上海国金中心，2 家门店" });
+  await mall.click();
+  expect(await mall.evaluate((element) => getComputedStyle(element).animationName)).toContain("mall-pop");
 });
 
 test("nearby mode preserves confirmed mall groups and street stores", async ({ page }) => {

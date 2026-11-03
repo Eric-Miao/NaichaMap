@@ -32,8 +32,17 @@ export function MapMarkers({
 }) {
   if (!projection) return null;
   // When the directory is fully expanded the map becomes a thin band; keep the
-  // user locator visible but skip the markers that would pile up.
+  // user locator and the selected marker, but skip the pile of other markers.
   const compact = size.height < 170;
+  const anchors = mapAnchors(groups);
+  const shownAnchors = compact
+    ? anchors.filter((anchor) =>
+        anchor.kind === "mall"
+          ? anchor.group.id === selectedId ||
+            anchor.group.stores.some((store) => store.id === selectedId)
+          : anchor.store.id === selectedId,
+      )
+    : anchors;
 
   const position = (point: GeoPoint) => {
     const { x, y } = projectPoint(point, projection, size);
@@ -47,7 +56,7 @@ export function MapMarkers({
   return (
     <div className={styles.markerLayer} role="group" aria-label="门店地图标记">
       <span className={styles.userMarker} style={position(userPoint)} aria-label="我的位置" />
-      {!compact && mapAnchors(groups).map((anchor) => {
+      {shownAnchors.map((anchor) => {
         if (anchor.kind === "mall") {
           const range = view.rangeByGroupId[anchor.group.id];
           const selected =

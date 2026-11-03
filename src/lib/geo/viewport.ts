@@ -4,7 +4,8 @@ export type ViewportSize = { width: number; height: number };
 export type MapView = { center: GeoPoint; zoom: number };
 export type ScreenPoint = { x: number; y: number };
 
-const TILE_SIZE = 256;
+// MapLibre/Mapbox-style zoom is defined over 512px tiles, not slippy 256px tiles.
+const TILE_SIZE = 512;
 const MAX_LATITUDE = 85.05112878;
 
 type WorldPoint = { x: number; y: number };
@@ -79,5 +80,21 @@ export function projectPoint(point: GeoPoint, view: MapView, size: ViewportSize)
 
 /** Approximate metres per CSS pixel at a latitude and zoom, for labels and sizing. */
 export function metresPerPixel(latitude: number, zoom: number) {
-  return (156_543.03392 * Math.cos((latitude * Math.PI) / 180)) / 2 ** zoom;
+  const worldMetres = 40_075_016.686;
+  return (worldMetres * Math.cos((latitude * Math.PI) / 180)) / (TILE_SIZE * 2 ** zoom);
+}
+
+/** A rounded scale-bar distance and the CSS width that represents it. */
+export function scaleBar(view: MapView, targetPx = 64) {
+  const metresPerCssPixel = metresPerPixel(view.center.lat, view.zoom);
+  const raw = Math.max(metresPerCssPixel * targetPx, 1);
+  const power = 10 ** Math.floor(Math.log10(raw));
+  const normalized = raw / power;
+  const step = normalized < 1.5 ? 1 : normalized < 3 ? 2 : normalized < 7 ? 5 : 10;
+  const distance = step * power;
+  return {
+    distance,
+    width: distance / metresPerCssPixel,
+    label: distance >= 1000 ? `${distance / 1000} KM` : `${Math.round(distance)} M`,
+  };
 }

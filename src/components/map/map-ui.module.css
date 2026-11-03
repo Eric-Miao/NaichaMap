@@ -180,6 +180,7 @@
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.11em;
+  pointer-events: none;
   text-shadow: 0 1px 2px rgb(252 248 241 / 85%);
 }
 
@@ -189,7 +190,40 @@
 
 .mapScale {
   right: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--ink);
+}
+
+.scaleBar {
+  display: block;
+  height: 6px;
+  flex: none;
+  border-right: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  border-left: 1px solid var(--ink);
+}
+
+.mapReset {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  box-shadow: 0 6px 18px rgb(42 33 26 / 16%);
+  color: var(--accent);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mapReset:hover {
+  border-color: var(--accent);
 }
 
 /* ---------- Markers ---------- */
@@ -219,6 +253,7 @@
 
 .mallMarker {
   display: grid;
+  width: max-content;
   min-height: 36px;
   max-width: 210px;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -234,6 +269,7 @@
   font: inherit;
   pointer-events: auto;
   text-align: left;
+  touch-action: manipulation;
   animation: marker-in 240ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
   transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 160ms ease;
 }
@@ -301,6 +337,7 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   pointer-events: auto;
+  touch-action: manipulation;
   animation: marker-in 240ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
   transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 160ms ease;
 }
@@ -323,6 +360,7 @@
   background: var(--ink);
   color: var(--surface);
   box-shadow: 0 0 0 2px var(--accent-light), 0 10px 24px rgb(42 33 26 / 24%);
+  animation: mall-pop 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mallMarker.selected .mallIndex {
@@ -341,6 +379,24 @@
   color: var(--surface);
   box-shadow: 0 0 0 2px var(--accent-light), 0 8px 20px rgb(42 33 26 / 24%);
   transform: translate(-50%, -50%) scale(1.06);
+  animation: marker-pop 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.marker.selected::after,
+.mallMarker.selected::after {
+  position: absolute;
+  inset: -3px;
+  border: 2px solid var(--surface);
+  content: "";
+  pointer-events: none;
+  animation: marker-ripple 420ms ease-out forwards;
+}
+
+.marker:active,
+.mallMarker:active {
+  animation: none;
+  transform: translate(-50%, -50%) scale(0.94);
+  transition-duration: 80ms;
 }
 
 /* ---------- Directory sheet ---------- */
@@ -838,7 +894,8 @@
 .feedback:focus-visible,
 .emptyAction:focus-visible,
 .marker:focus-visible,
-.mallMarker:focus-visible {
+.mallMarker:focus-visible,
+.mapReset:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -889,9 +946,31 @@
     right: 30px;
   }
 
+  .mapReset {
+    top: 18px;
+    right: 18px;
+  }
+
   .list {
     padding-bottom: 18px;
   }
+}
+
+@keyframes marker-pop {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  45% { transform: translate(-50%, -50%) scale(1.1); }
+  100% { transform: translate(-50%, -50%) scale(1.06); }
+}
+
+@keyframes mall-pop {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  45% { transform: translate(-50%, -50%) scale(1.04); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes marker-ripple {
+  0% { opacity: 0.75; transform: scale(0.82); }
+  100% { opacity: 0; transform: scale(1.5); }
 }
 
 @keyframes marker-in {
@@ -907,7 +986,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .marker,
-  .mallMarker {
+  .mallMarker,
+  .marker.selected::after,
+  .mallMarker.selected::after {
     animation: none;
     transition: none;
   }

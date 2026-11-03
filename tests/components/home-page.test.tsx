@@ -34,6 +34,7 @@ function setFetch(handler: (url: string, init?: RequestInit) => Response | Promi
 }
 
 beforeEach(() => {
+  window.history.replaceState({}, "", "/");
   Object.defineProperty(navigator, "geolocation", {
     configurable: true,
     value: {
@@ -184,6 +185,52 @@ describe("HomePage", () => {
 
     expect(await screen.findByText(/3 分钟后再试/)).toBeInTheDocument();
     expect(screen.getByLabelText("补充说明")).toBeInTheDocument();
+  });
+
+  it("restores a shareable URL without asking for geolocation", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/?lat=31.24&lng=121.49&place=上海国金中心&filter=tea_drink&group=mall-1&drawer=1",
+    );
+    render(<HomePage />);
+
+    expect(await screen.findByRole("heading", { name: "上海国金中心", level: 1 })).toBeInTheDocument();
+    expect(navigator.geolocation.getCurrentPosition).not.toHaveBeenCalled();
+    expect(await screen.findByRole("button", { name: "茶饮 1" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("store-drawer")).toHaveAttribute("data-state", "expanded");
+  });
+
+  it("writes the active category filter into the URL", async () => {
+    setFetch(() =>
+      Response.json({
+        ...nearby,
+        currentMall: null,
+        groups: [
+          {
+            kind: "street",
+            id: "street",
+            mall: null,
+            stores: [
+              nearby.groups[0].stores[0],
+              {
+                ...nearby.groups[0].stores[0],
+                id: "coffee-1",
+                name: "M Stand",
+                category: "coffee",
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    render(<HomePage />);
+    await userEvent.click(screen.getByRole("button", { name: "使用我的位置" }));
+    locationSuccess({ coords: { longitude: 121.49, latitude: 31.24 } } as GeolocationPosition);
+    await screen.findByRole("button", { name: "选择喜茶" });
+
+    await userEvent.click(screen.getByRole("button", { name: "咖啡 1" }));
+    await waitFor(() => expect(window.location.search).toContain("filter=coffee"));
   });
 
   it("keeps correction submission visibly disabled while it is pending", async () => {

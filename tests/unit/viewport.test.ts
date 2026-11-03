@@ -48,8 +48,8 @@ describe("fitMapView", () => {
     expect(north.x).toBeCloseTo(here.x, 5);
   });
 
-  it("reports a plausible metres-per-pixel scale", () => {
-    expect(metresPerPixel(31.24, 15)).toBeCloseTo(4.0, 0);
-    expect(metresPerPixel(31.24, 16)).toBeCloseTo(2.0, 0);
+  it("uses the 512px tile scale MapLibre projects with", () => {
+    expect(metresPerPixel(31.24, 15)).toBeCloseTo(2.0, 0);
+    expect(metresPerPixel(31.24, 16)).toBeCloseTo(1.0, 0);
   });
 });

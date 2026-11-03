@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Map, setWorkerUrl } from "maplibre-gl";
+import { LocateFixed } from "lucide-react";
 
 import { mapAnchors } from "@/features/map/map-anchors";
 import type { StoreGroup } from "@/features/nearby/contracts";
 import type { DirectoryView } from "@/features/map/selectors";
 import type { GeoPoint } from "@/lib/geo/coordinates";
-import { NEARBY_SCALE_LABEL } from "@/lib/geo/search";
-import { fitMapView, type ViewportSize } from "@/lib/geo/viewport";
+import { fitMapView, scaleBar, type MapView, type ViewportSize } from "@/lib/geo/viewport";
 import {
   basemapLabel,
   FALLBACK_MAP_STYLE_URL,
@@ -51,6 +51,7 @@ export function StoreMap({
   const [size, setSize] = useState<ViewportSize>(FALLBACK_SIZE);
   const [activeStyle, setActiveStyle] = useState<string | undefined>(styleUrl);
   const [mapFailed, setMapFailed] = useState(false);
+  const [liveView, setLiveView] = useState<MapView | null>(null);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -78,7 +79,7 @@ export function StoreMap({
     () => [userPoint, ...anchors.map((anchor) => anchor.point)],
     [anchors, userPoint],
   );
-  const projection = useMemo(
+  const fitView = useMemo(
     () => fitMapView(points, size, { padding: 30, minZoom: 13.5, maxZoom: 16.8 }),
     [points, size],
   );
@@ -91,12 +92,35 @@ export function StoreMap({
       style: activeStyle,
       center: [userPoint.lng, userPoint.lat],
       zoom: 15,
+      minZoom: 12,
+      maxZoom: 18,
       attributionControl: false,
-      interactive: false,
+      interactive: true,
+      dragRotate: false,
+      pitchWithRotate: false,
+      renderWorldCopies: false,
+      cooperativeGestures: false,
     });
     mapRef.current = map;
 
+    // Keep pan and pinch zoom, but never rotate or pitch: the DOM markers use a
+    // flat Web Mercator projection.
+    map.touchZoomRotate?.disableRotation?.();
+    map.dragRotate?.disable?.();
+    map.touchPitch?.disable?.();
+    map.keyboard?.disableRotation?.();
+
     let settled = false;
+    let frame = 0;
+    const syncView = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (typeof map.getCenter !== "function" || typeof map.getZoom !== "function") return;
+        const center = map.getCenter();
+        setLiveView({ center: { lng: center.lng, lat: center.lat }, zoom: map.getZoom() });
+      });
+    };
     const fallbackToNextStyle = () => {
       if (settled) return;
       settled = true;
@@ -114,16 +138,22 @@ export function StoreMap({
         settled = true;
         clearTimeout(timer);
         setMapFailed(false);
+        syncView();
       });
       map.on("error", () => {
         const loaded =
           typeof map.isStyleLoaded === "function" ? map.isStyleLoaded() : false;
         if (!loaded) fallbackToNextStyle();
       });
+      map.on("move", syncView);
+      map.on("zoom", syncView);
+      map.on("moveend", syncView);
     }
 
     return () => {
+      settled = true;
       clearTimeout(timer);
+      if (frame) cancelAnimationFrame(frame);
       map.remove();
       mapRef.current = null;
     };
@@ -133,17 +163,43 @@ export function StoreMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !projection) return;
+    if (!map) return;
     if (typeof map.resize === "function") map.resize();
-    if (typeof map.jumpTo === "function") {
-      map.jumpTo({ center: [projection.center.lng, projection.center.lat], zoom: projection.zoom });
-    }
-  }, [activeStyle, projection, size]);
+  }, [size]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !fitView) return;
+    if (typeof map.jumpTo === "function") {
+      map.jumpTo({ center: [fitView.center.lng, fitView.center.lat], zoom: fitView.zoom });
+    }
+  }, [activeStyle, fitView]);
+
+  function resetMap() {
+    if (!fitView) return;
+    const map = mapRef.current;
+    if (map && typeof map.easeTo === "function") {
+      map.easeTo({
+        center: [fitView.center.lng, fitView.center.lat],
+        zoom: fitView.zoom,
+        duration: 450,
+      });
+    } else {
+      setLiveView(fitView);
+    }
+  }
+
+  const displayView = liveView ?? fitView;
+  const scale = displayView ? scaleBar(displayView) : null;
   const mapReady = Boolean(activeStyle) && !mapFailed;
   const note = mapReady
     ? basemapLabel(mapStyleProvider(activeStyle!))
     : "示意视图 · 门店按真实坐标缩放";
+  const moved =
+    Boolean(liveView && fitView) &&
+    (Math.abs(liveView!.center.lat - fitView!.center.lat) > 0.00005 ||
+      Math.abs(liveView!.center.lng - fitView!.center.lng) > 0.00005 ||
+      Math.abs(liveView!.zoom - fitView!.zoom) > 0.05);
 
   return (
     <div
@@ -154,13 +210,29 @@ export function StoreMap({
       <div ref={canvasRef} className={styles.mapCanvas} aria-hidden="true" />
       <div className={styles.mapVeil} aria-hidden="true" />
       <span className={styles.mapNote} aria-hidden="true">{note}</span>
-      <span className={styles.mapScale} aria-hidden="true">{NEARBY_SCALE_LABEL}</span>
+      {scale ? (
+        <span className={styles.mapScale} aria-hidden="true">
+          <span className={styles.scaleBar} style={{ width: `${scale.width}px` }} />
+          <span>{scale.label}</span>
+        </span>
+      ) : null}
       <div className={styles.mapCorners} aria-hidden="true" />
+      {mapReady && moved ? (
+        <button
+          type="button"
+          className={styles.mapReset}
+          onClick={resetMap}
+          aria-label="回到门店范围"
+          title="回到门店范围"
+        >
+          <LocateFixed aria-hidden="true" size={16} strokeWidth={1.8} />
+        </button>
+      ) : null}
       <MapMarkers
         userPoint={userPoint}
         groups={groups}
         view={view}
-        projection={projection}
+        projection={displayView}
         size={size}
         selectedId={selectedId}
         onSelectGroup={onSelectGroup}

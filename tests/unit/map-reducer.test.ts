@@ -75,6 +75,13 @@ describe("mapReducer", () => {
     });
   });
 
+  it("resets the whole view when the browser returns to the entry", () => {
+    const searching = mapReducer(initialMapState, { type: "SET_SCREEN", screen: "search" });
+    const labeled = mapReducer(searching, { type: "SET_PLACE_LABEL", label: "环贸iapm" });
+    const filtered = mapReducer(labeled, { type: "SET_FILTER", filter: "coffee" });
+    expect(mapReducer(filtered, { type: "RESET" })).toEqual(initialMapState);
+  });
+
   it("stores a location-group filter and resets it when new nearby data loads", () => {
     const filtered = mapReducer(initialMapState, {
       type: "SET_GROUP_FILTER",
