@@ -1,74 +1,90 @@
 import type { StoreGroup } from "@/features/nearby/contracts";
+import { mapAnchors } from "@/features/map/map-anchors";
+import type { DirectoryView } from "@/features/map/selectors";
 import type { GeoPoint } from "@/lib/geo/coordinates";
+import { projectPoint, type MapView, type ViewportSize } from "@/lib/geo/viewport";
 
 import styles from "./map-ui.module.css";
 
-function average(points: GeoPoint[]) {
-  return {
-    lng: points.reduce((sum, point) => sum + point.lng, 0) / points.length,
-    lat: points.reduce((sum, point) => sum + point.lat, 0) / points.length,
-  };
+function rangeLabel(range: { start: string; end: string; count: number } | undefined) {
+  if (!range) return "—";
+  return range.count > 1 ? `${range.start}–${range.end}` : range.start;
 }
 
 export function MapMarkers({
   userPoint,
   groups,
+  view,
+  projection,
+  size,
   selectedId,
   onSelectGroup,
   onSelectStore,
 }: {
   userPoint: GeoPoint;
   groups: StoreGroup[];
+  view: DirectoryView;
+  projection: MapView | null;
+  size: ViewportSize;
   selectedId: string | null;
   onSelectGroup: (id: string) => void;
   onSelectStore: (id: string) => void;
 }) {
-  const mallMarkers = groups
-    .filter(
-      (group): group is Extract<StoreGroup, { kind: "mall" }> =>
-        group.kind === "mall" && group.stores.length > 0,
-    )
-    .map((group) => ({ group, point: average(group.stores.map((store) => store.location)) }));
-  const streetStores = groups.filter((group) => group.kind === "street").flatMap((group) => group.stores);
-  const points = [userPoint, ...mallMarkers.map((marker) => marker.point), ...streetStores.map((store) => store.location)];
-  const minLng = Math.min(...points.map((point) => point.lng));
-  const maxLng = Math.max(...points.map((point) => point.lng));
-  const minLat = Math.min(...points.map((point) => point.lat));
-  const maxLat = Math.max(...points.map((point) => point.lat));
-  const position = (point: GeoPoint) => ({
-    left: `${12 + ((point.lng - minLng) / Math.max(maxLng - minLng, 0.001)) * 76}%`,
-    top: `${12 + (1 - (point.lat - minLat) / Math.max(maxLat - minLat, 0.001)) * 66}%`,
-  });
+  if (!projection) return null;
+  // When the directory is fully expanded the map becomes a thin band; keep the
+  // user locator visible but skip the markers that would pile up.
+  const compact = size.height < 170;
+
+  const position = (point: GeoPoint) => {
+    const { x, y } = projectPoint(point, projection, size);
+    return { left: `${x}px`, top: `${y}px` };
+  };
+
+  const selectedStoreGroup = groups.find((group) =>
+    group.stores.some((store) => store.id === selectedId),
+  )?.id;
 
   return (
-    <div className={styles.markerLayer} aria-label="门店地图标记">
+    <div className={styles.markerLayer} role="group" aria-label="门店地图标记">
       <span className={styles.userMarker} style={position(userPoint)} aria-label="我的位置" />
-      {mallMarkers.map(({ group, point }) => (
-        <button
-          key={group.id}
-          type="button"
-          className={`${styles.mallMarker} ${selectedId === group.id ? styles.selected : ""}`}
-          style={position(point)}
-          aria-label={`${group.mall.name}，${group.stores.length} 家门店`}
-          onClick={() => onSelectGroup(group.id)}
-        >
-          <strong>{group.mall.name}</strong>
-          <span>{group.stores.length}</span>
-        </button>
-      ))}
-      {streetStores.map((store) => (
-        <button
-          key={store.id}
-          type="button"
-          className={`${styles.marker} ${selectedId === store.id ? styles.selected : ""}`}
-          data-category={store.category}
-          style={position(store.location)}
-          aria-label={store.name}
-          onClick={() => onSelectStore(store.id)}
-        >
-          <span>{store.category === "coffee" ? "咖" : store.category === "beverage" ? "饮" : "茶"}</span>
-        </button>
-      ))}
+      {!compact && mapAnchors(groups).map((anchor) => {
+        if (anchor.kind === "mall") {
+          const range = view.rangeByGroupId[anchor.group.id];
+          const selected =
+            selectedId === anchor.group.id ||
+            anchor.group.stores.some((store) => store.id === selectedId);
+          return (
+            <button
+              key={anchor.group.id}
+              type="button"
+              className={`${styles.mallMarker} ${selected ? styles.selected : ""}`}
+              style={position(anchor.point)}
+              data-current={anchor.group.id === view.currentMallId || undefined}
+              aria-label={`${anchor.group.mall.name}，${anchor.group.stores.length} 家门店`}
+              onClick={() => onSelectGroup(anchor.group.id)}
+            >
+              <span className={styles.mallIndex}>{rangeLabel(range)}</span>
+              <strong className={styles.mallName}>{anchor.group.mall.name}</strong>
+              <span className={styles.mallCount}>{anchor.group.stores.length}</span>
+            </button>
+          );
+        }
+
+        const selected = selectedId === anchor.store.id || selectedStoreGroup === anchor.group.id;
+        return (
+          <button
+            key={anchor.store.id}
+            type="button"
+            className={`${styles.marker} ${selected ? styles.selected : ""}`}
+            style={position(anchor.point)}
+            data-category={anchor.store.category}
+            aria-label={anchor.store.name}
+            onClick={() => onSelectStore(anchor.store.id)}
+          >
+            <span className={styles.markerIndex}>{view.indexByStoreId[anchor.store.id] ?? "—"}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

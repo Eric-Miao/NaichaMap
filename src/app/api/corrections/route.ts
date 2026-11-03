@@ -5,6 +5,7 @@ import type { CorrectionResult } from "@/features/corrections/contracts";
 import { extractVercelIp } from "@/features/corrections/ip";
 import { submitCorrection } from "@/features/corrections/service";
 import { getServerEnv } from "@/lib/env/server";
+import { jsonError } from "@/lib/http/responses";
 
 const correctionSchema = z.object({
   storeId: z.uuid().nullable().optional(),
@@ -21,7 +22,7 @@ type CorrectionRouteDependencies = {
 };
 
 function error(code: string, message: string, retryable: boolean, status: number, extra = {}) {
-  return Response.json({ error: { code, message, retryable }, ...extra }, { status });
+  return jsonError(code, message, retryable, status, extra);
 }
 
 export async function handleCorrection(

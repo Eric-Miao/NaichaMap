@@ -12,8 +12,17 @@ import { useNearby } from "@/features/map/use-nearby";
 import type { PlaceSearchResult } from "@/features/place-search/service";
 import { getPublicEnv } from "@/lib/env/public";
 
+function staleLabel(cachedAt?: string | null) {
+  if (!cachedAt) return "显示的是较早数据";
+  return `显示的是较早数据 · 更新于 ${new Intl.DateTimeFormat("zh-CN", {
+    dateStyle: "short",
+    timeStyle: "short",
+    hour12: false,
+  }).format(new Date(cachedAt))}`;
+}
+
 export default function HomePage() {
-  const { state, dispatch, requestLocation, retry, loadAt, mapCenter } = useNearby();
+  const { state, dispatch, requestLocation, retry, loadAt, userPoint } = useNearby();
   const [manualSearch, setManualSearch] = useState(false);
   const [placeLabel, setPlaceLabel] = useState<string | null>(null);
   const [correctionOpen, setCorrectionOpen] = useState(false);
@@ -40,43 +49,36 @@ export default function HomePage() {
   }
 
   if (state.status === "error") {
-    return <PageStatus kind="error" message={state.error?.message} retryable={state.error?.retryable} onRetry={retry} />;
-  }
-
-  if (state.status === "empty") {
     return (
-      <div className={styles.page}>
-        <PageStatus kind="empty" onCorrection={() => setCorrectionOpen(true)} />
-        <CorrectionDialog open={correctionOpen} onClose={() => setCorrectionOpen(false)} />
-      </div>
+      <PageStatus
+        kind="error"
+        message={state.error?.message}
+        retryable={state.error?.retryable}
+        onRetry={retry}
+      />
     );
   }
 
-  if (!state.data || !mapCenter) return <PageStatus kind="loading" />;
+  if (!state.data || !userPoint) return <PageStatus kind="loading" />;
 
-  const title = placeLabel ?? "附近好喝的";
   const storeCount = state.data.groups.reduce((total, group) => total + group.stores.length, 0);
   const subtitle = `附近 1 公里 · 共 ${storeCount} 家`;
 
   return (
     <div className={styles.page}>
-      {state.status === "stale" ? (
-        <div className={styles.staleBanner} role="status">
-          显示的是较早数据
-          {state.data.cachedAt ? ` · 更新于 ${new Intl.DateTimeFormat("zh-CN", { dateStyle: "short", timeStyle: "short", hour12: false }).format(new Date(state.data.cachedAt))}` : ""}
-        </div>
-      ) : null}
-      <button type="button" className={styles.feedbackButton} onClick={() => setCorrectionOpen(true)}>信息有误？</button>
       <MapShell
-        title={title}
+        title={placeLabel ?? "附近好喝的"}
         subtitle={subtitle}
+        stale={state.status === "stale" ? staleLabel(state.data.cachedAt) : null}
         styleUrl={styleUrl}
-        userPoint={mapCenter}
+        userPoint={userPoint}
         groups={state.data.groups}
+        currentMallId={state.data.currentMall?.id ?? null}
         filter={state.filter}
         groupFilter={state.groupFilter}
         selectedId={state.selectedId}
         drawerExpanded={state.drawerOpen}
+        onOpenCorrections={() => setCorrectionOpen(true)}
         onDrawerExpandedChange={(open) => dispatch({ type: "SET_DRAWER", open })}
         onFilterChange={(filter) => dispatch({ type: "SET_FILTER", filter })}
         onGroupFilterChange={(groupFilter) => dispatch({ type: "SET_GROUP_FILTER", groupFilter })}

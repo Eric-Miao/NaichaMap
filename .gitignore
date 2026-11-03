@@ -8,6 +8,7 @@ test-results/
 playwright-report/
 .vercel/
 *.tsbuildinfo
+public/maplibre/
 
 # Environment and secrets
 .env
@@ -17,6 +18,9 @@ playwright-report/
 # Local design and agent tooling
 .superpowers/
 .impeccable/
+.codex/
+.cursor/
+.claude/
 
 # Logs and local editor files
 *.log

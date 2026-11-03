@@ -1,9 +1,10 @@
 import { z } from "zod";
 
 import { NearbyServiceError } from "@/features/nearby/contracts";
-import type { NearbyErrorBody, NearbyErrorCode } from "@/features/nearby/contracts";
+import type { NearbyErrorCode } from "@/features/nearby/contracts";
 import { getNearby } from "@/features/nearby/service";
 import { assertShanghaiLocation, InvalidLocationError } from "@/lib/geo/coordinates";
+import { jsonError } from "@/lib/http/responses";
 
 const inputSchema = z.object({
   lng: z.number().finite().min(-180).max(180),
@@ -11,8 +12,7 @@ const inputSchema = z.object({
 });
 
 function errorResponse(code: NearbyErrorCode, message: string, retryable: boolean, status: number) {
-  const body: NearbyErrorBody = { error: { code, message, retryable } };
-  return Response.json(body, { status });
+  return jsonError(code, message, retryable, status);
 }
 
 export async function POST(request: Request) {

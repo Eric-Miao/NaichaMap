@@ -5,8 +5,7 @@ export type MapStatus =
   | "locating"
   | "loading-cache"
   | "refreshing"
-  | "ready-mall"
-  | "ready-nearby"
+  | "ready"
   | "denied"
   | "unavailable"
   | "empty"
@@ -49,7 +48,7 @@ export const initialMapState: MapState = {
   status: "permission",
   filter: "all",
   groupFilter: "all",
-  drawerOpen: true,
+  drawerOpen: false,
   selectedId: null,
   data: null,
   error: null,
@@ -72,17 +71,23 @@ export function mapReducer(state: MapState, action: MapAction): MapState {
       const status: MapStatus =
         action.payload.cacheStatus === "stale"
           ? "stale"
-          : action.payload.currentMall
-              ? "ready-mall"
-              : action.payload.groups.length === 0
-                ? "empty"
-                : "ready-nearby";
-      return { ...state, status, data: action.payload, groupFilter: "all", error: null };
+          : action.payload.groups.length === 0
+            ? "empty"
+            : "ready";
+      return {
+        ...state,
+        status,
+        data: action.payload,
+        filter: "all",
+        groupFilter: "all",
+        selectedId: null,
+        error: null,
+      };
     }
     case "LOAD_ERROR":
       return { ...state, status: "error", error: action.error };
     case "SET_FILTER":
-      return { ...state, filter: action.filter };
+      return { ...state, filter: action.filter, selectedId: null };
     case "SET_GROUP_FILTER":
       return { ...state, groupFilter: action.groupFilter, selectedId: null };
     case "SELECT":

@@ -1,45 +1,36 @@
-import type { StoreGroup } from "@/features/nearby/contracts";
 import type { GroupFilter } from "@/features/map/reducer";
 
 import styles from "../map/map-ui.module.css";
 
 export function LocationTabs({
-  groups,
-  countGroups,
+  options,
+  total,
   value,
   onChange,
 }: {
-  groups: StoreGroup[];
-  countGroups: StoreGroup[];
+  options: Array<{ id: string; label: string; count: number }>;
+  total: number;
   value: GroupFilter;
   onChange: (filter: GroupFilter) => void;
 }) {
-  const counts = new Map(countGroups.map((group) => [group.id, group.stores.length]));
-  const count = countGroups.reduce((total, group) => total + group.stores.length, 0);
-  const tabs = [
-    { value: "all", label: "全部地点", count },
-    ...groups.map((group) => ({
-      value: group.id,
-      label: group.kind === "mall" ? group.mall.name : "周边街铺",
-      count: counts.get(group.id) ?? 0,
-    })),
-  ];
+  const tabs = [{ id: "all", label: "全部地点", count: total }, ...options];
 
   return (
-    <div className={`${styles.tabs} ${styles.locationTabs}`} role="tablist" aria-label="地点筛选">
-      {tabs.map((tab) => (
-        <button
-          key={tab.value}
-          type="button"
-          className={styles.tab}
-          role="tab"
-          aria-selected={value === tab.value}
-          disabled={tab.count === 0 && value !== tab.value}
-          onClick={() => onChange(tab.value)}
-        >
-          {tab.label} {tab.count}
-        </button>
-      ))}
+    <div className={styles.filterBlock}>
+      <div className={styles.tabs} role="group" aria-label="地点筛选">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={styles.tab}
+            aria-pressed={value === tab.id}
+            disabled={tab.count === 0 && value !== tab.id}
+            onClick={() => onChange(tab.id)}
+          >
+            <span>{tab.label}</span> <span className={styles.count}>{tab.count}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

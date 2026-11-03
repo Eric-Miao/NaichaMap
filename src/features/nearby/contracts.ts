@@ -58,3 +58,28 @@ export class NearbyServiceError extends Error {
     this.name = "NearbyServiceError";
   }
 }
+
+/** Persisted ownership of one search cell's refresh lifecycle. */
+export type CacheState = {
+  fetchStatus: "idle" | "fetching" | "succeeded" | "failed";
+  expiresAt: string | null;
+  lastFetchedAt?: string | null;
+};
+
+export type SearchClaim = { shouldFetch: boolean; leaseToken: string | null };
+
+export type NearbyStoreRecord = {
+  store_id: string;
+  provider: string;
+  provider_place_id: string;
+  name: string;
+  branch_name: string | null;
+  category: StoreCategory;
+  address: string;
+  mall_id: string | null;
+  mall_name: string | null;
+  mall_address: string | null;
+  longitude: number;
+  latitude: number;
+  distance_m: number;
+};

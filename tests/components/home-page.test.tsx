@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("maplibre-gl", () => ({
+  setWorkerUrl: vi.fn(),
   Map: class {
     remove = vi.fn();
   },
@@ -46,17 +47,15 @@ beforeEach(() => {
 });
 
 describe("HomePage", () => {
-  it("keeps entry action labels independent from decorative icon slots", () => {
+  it("presents entry actions as numbered directory rows with decorative icons", () => {
     render(<HomePage />);
 
     for (const name of ["使用我的位置", "搜索商场或地点"]) {
-      const button = screen.getByRole("button", { name });
-      const slots = button.querySelectorAll(":scope > span");
-      expect(slots).toHaveLength(3);
-      expect(slots[0]).toHaveAttribute("aria-hidden", "true");
-      expect(slots[2]).toHaveAttribute("aria-hidden", "true");
-      expect(slots[1]).toHaveTextContent(name);
+      const button = screen.getByRole("button", { name: new RegExp(name) });
+      expect(button.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+      expect(button).toHaveTextContent(name);
     }
+    expect(screen.getByRole("navigation", { name: "开始查找" })).toBeInTheDocument();
   });
 
   it("requests location only after a clear user action and renders grouped mall results", async () => {

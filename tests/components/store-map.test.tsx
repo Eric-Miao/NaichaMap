@@ -3,12 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("maplibre-gl", () => ({
+  setWorkerUrl: vi.fn(),
   Map: class {
     remove = vi.fn();
+    resize = vi.fn();
+    jumpTo = vi.fn();
   },
 }));
 
 import { StoreMap } from "../../src/components/map/store-map";
+import { buildDirectoryView } from "../../src/features/map/selectors";
 
 const groups = [
   {
@@ -39,6 +43,7 @@ describe("StoreMap", () => {
         styleUrl="https://maps.example/style.json"
         userPoint={{ lng: 121.49, lat: 31.24 }}
         groups={groups}
+        view={buildDirectoryView(groups, "all", "all", "mall-1")}
         selectedId={null}
         onSelectGroup={onSelectGroup}
         onSelectStore={onSelectStore}

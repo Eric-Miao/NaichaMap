@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { filterStoreGroups, selectVisibleGroups } from "../../src/features/map/selectors";
-import type { MapState } from "../../src/features/map/reducer";
+import { buildDirectoryView, filterStoreGroups } from "../../src/features/map/selectors";
 
 const groups = [
   {
@@ -23,32 +22,19 @@ const groups = [
   },
 ];
 
-function state(filter: MapState["filter"]): MapState {
-  return {
-    status: "ready-nearby",
-    filter,
-    groupFilter: "all",
-    drawerOpen: true,
-    selectedId: null,
-    data: { currentMall: null, groups, cacheStatus: "fresh" },
-    error: null,
-    correction: { status: "idle", retryAfterSeconds: null },
-  };
-}
-
-describe("selectVisibleGroups", () => {
+describe("filterStoreGroups", () => {
   it("preserves all grouping and order for the all filter", () => {
-    expect(selectVisibleGroups(state("all"))).toEqual(groups);
+    expect(filterStoreGroups(groups, "all", "all")).toEqual(groups);
   });
 
   it("keeps tea and beverage in their original groups", () => {
-    const result = selectVisibleGroups(state("tea_drink"));
+    const result = filterStoreGroups(groups, "tea_drink", "all");
     expect(result.map((group) => group.id)).toEqual(["mall-1", "street"]);
     expect(result.flatMap((group) => group.stores.map((store) => store.id))).toEqual(["tea", "juice"]);
   });
 
   it("keeps only non-empty coffee groups without reordering", () => {
-    const result = selectVisibleGroups(state("coffee"));
+    const result = filterStoreGroups(groups, "coffee", "all");
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("mall-1");
     expect(result[0].stores.map((store) => store.id)).toEqual(["coffee"]);
@@ -65,5 +51,37 @@ describe("selectVisibleGroups", () => {
     const result = filterStoreGroups(groups, "tea_drink", "street");
     expect(result.map((group) => group.id)).toEqual(["street"]);
     expect(result[0].stores.map((store) => store.id)).toEqual(["juice"]);
+  });
+});
+
+describe("buildDirectoryView", () => {
+  it("numbers visible stores and groups once, for both map and list", () => {
+    const view = buildDirectoryView(groups, "all", "all", "mall-1");
+    expect(view.totalStores).toBe(3);
+    expect(view.indexByStoreId).toEqual({ tea: "01", coffee: "02", juice: "03" });
+    expect(view.rangeByGroupId["mall-1"]).toEqual({ start: "01", end: "02", count: 2 });
+    expect(view.rangeByGroupId.street).toEqual({ start: "03", end: "03", count: 1 });
+    expect(view.currentMallId).toBe("mall-1");
+    expect(view.filtered).toBe(false);
+  });
+
+  it("renumbers after a category filter and keeps counts for the other rail", () => {
+    const view = buildDirectoryView(groups, "coffee", "all");
+    expect(view.totalStores).toBe(1);
+    expect(view.indexByStoreId).toEqual({ coffee: "01" });
+    expect(view.rangeByGroupId).not.toHaveProperty("street");
+    expect(view.categories).toEqual({ all: 3, tea_drink: 2, coffee: 1 });
+    expect(view.locations).toEqual([
+      { id: "mall-1", label: "商场 A", count: 1 },
+      { id: "street", label: "周边街铺", count: 0 },
+    ]);
+    expect(view.filtered).toBe(true);
+  });
+
+  it("reports an empty view for a filter with no matches", () => {
+    const view = buildDirectoryView(groups, "coffee", "street");
+    expect(view.groups).toEqual([]);
+    expect(view.totalStores).toBe(0);
+    expect(view.filtered).toBe(true);
   });
 });

@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import { StoreDrawer } from "../../src/components/stores/store-drawer";
 import type { StoreGroup } from "../../src/features/nearby/contracts";
 import type { MapFilter } from "../../src/features/map/reducer";
+import { buildDirectoryView } from "../../src/features/map/selectors";
 
 const groups: StoreGroup[] = [
   {
@@ -34,7 +35,7 @@ function DrawerHarness(props: { onSelectGroup?: (id: string) => void; onSelectSt
   const [groupFilter, setGroupFilter] = useState("all");
   return (
     <StoreDrawer
-      groups={groups}
+      view={buildDirectoryView(groups, filter, groupFilter)}
       filter={filter}
       groupFilter={groupFilter}
       selectedId={null}
@@ -44,6 +45,7 @@ function DrawerHarness(props: { onSelectGroup?: (id: string) => void; onSelectSt
       onGroupFilterChange={setGroupFilter}
       onSelectGroup={props.onSelectGroup ?? vi.fn()}
       onSelectStore={props.onSelectStore ?? vi.fn()}
+      onCorrection={vi.fn()}
     />
   );
 }
@@ -53,9 +55,9 @@ describe("StoreDrawer", () => {
     render(<DrawerHarness />);
     const drawer = screen.getByTestId("store-drawer");
     expect(drawer).toHaveAttribute("data-state", "collapsed");
-    expect(screen.getByRole("tab", { name: "全部 3" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "茶饮 2" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "咖啡 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "全部 3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "茶饮 2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "咖啡 1" })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "展开门店列表" }));
     expect(drawer).toHaveAttribute("data-state", "expanded");
@@ -95,9 +97,9 @@ describe("StoreDrawer", () => {
 
   it("filters categories without losing mall and street headings", async () => {
     render(<DrawerHarness />);
-    await userEvent.click(screen.getByRole("tab", { name: "茶饮 2" }));
-    expect(screen.getByText("上海国金中心")).toBeInTheDocument();
-    expect(screen.getByText("周边街铺")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "茶饮 2" }));
+    expect(screen.getByRole("button", { name: "查看上海国金中心门店" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "查看周边街铺门店" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "选择喜茶" })).toBeInTheDocument();
     expect(screen.getByText("鲜果饮品")).toBeInTheDocument();
     expect(screen.queryByText("M Stand")).not.toBeInTheDocument();
@@ -105,11 +107,11 @@ describe("StoreDrawer", () => {
 
   it("lists only non-empty nearby locations and filters the drawer by mall", async () => {
     render(<DrawerHarness />);
-    expect(screen.getByRole("tab", { name: "全部地点 3" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "上海国金中心 2" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "周边街铺 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "全部地点 3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "上海国金中心 2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "周边街铺 1" })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("tab", { name: "上海国金中心 2" }));
+    await userEvent.click(screen.getByRole("button", { name: "上海国金中心 2" }));
     expect(screen.getByRole("button", { name: "选择喜茶" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "选择M Stand" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "选择鲜果饮品" })).not.toBeInTheDocument();
@@ -118,15 +120,15 @@ describe("StoreDrawer", () => {
   it("updates each filter row from the other filter selection", async () => {
     render(<DrawerHarness />);
 
-    await userEvent.click(screen.getByRole("tab", { name: "上海国金中心 2" }));
-    expect(screen.getByRole("tab", { name: "全部 2" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "茶饮 1" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "咖啡 1" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "上海国金中心 2" }));
+    expect(screen.getByRole("button", { name: "全部 2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "茶饮 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "咖啡 1" })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("tab", { name: "咖啡 1" }));
-    expect(screen.getByRole("tab", { name: "全部地点 1" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "上海国金中心 1" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "周边街铺 0" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "咖啡 1" }));
+    expect(screen.getByRole("button", { name: "全部地点 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "上海国金中心 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "周边街铺 0" })).toBeDisabled();
   });
 
   it("forwards group and store selection", async () => {

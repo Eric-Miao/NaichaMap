@@ -62,25 +62,20 @@ async function mockLocation(page: import("@playwright/test").Page, mode: "succes
   }, { locationMode: mode });
 }
 
-test("entry controls keep labels centered and form controls equal height", async ({ page }) => {
+test("entry directory rows are full width and search controls are 50px", async ({ page }) => {
   await page.goto("/");
 
   for (const name of ["使用我的位置", "搜索商场或地点"]) {
     const button = page.getByRole("button", { name });
-    const label = button.locator(":scope > span").nth(1);
-    await expect(label).toHaveCount(1);
-    const centers = await button.evaluate((element) => {
-      const labelElement = element.querySelector(":scope > span:nth-child(2)");
-      if (!labelElement) return null;
-      const buttonRect = element.getBoundingClientRect();
-      const labelRect = labelElement.getBoundingClientRect();
-      return {
-        button: buttonRect.left + buttonRect.width / 2,
-        label: labelRect.left + labelRect.width / 2,
-      };
+    await expect(button).toBeVisible();
+    const geometry = await button.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const parent = element.parentElement!.getBoundingClientRect();
+      return { width: rect.width, parent: parent.width, height: rect.height };
     });
-    expect(centers).not.toBeNull();
-    expect(Math.abs(centers!.button - centers!.label)).toBeLessThanOrEqual(1);
+    expect(geometry.width).toBeCloseTo(geometry.parent, 0);
+    expect(geometry.height).toBeGreaterThanOrEqual(68);
+    await expect(button.locator("svg").first()).toHaveAttribute("aria-hidden", "true");
   }
 
   await page.getByRole("button", { name: "搜索商场或地点" }).click();
@@ -88,8 +83,8 @@ test("entry controls keep labels centered and form controls equal height", async
     .evaluate((element) => element.getBoundingClientRect().height);
   const buttonHeight = await page.getByRole("button", { name: "搜索", exact: true })
     .evaluate((element) => element.getBoundingClientRect().height);
-  expect(inputHeight).toBe(48);
-  expect(buttonHeight).toBe(48);
+  expect(inputHeight).toBe(50);
+  expect(buttonHeight).toBe(50);
 });
 
 test("unified nearby mode supports filtering, map/list selection and copy feedback", async ({ page }) => {
@@ -98,11 +93,12 @@ test("unified nearby mode supports filtering, map/list selection and copy feedba
   await page.getByRole("button", { name: "使用我的位置" }).click();
 
   await expect(page.getByRole("heading", { name: "附近好喝的", level: 1 })).toBeVisible();
-  await page.getByRole("tab", { name: "咖啡 1" }).click();
+  await page.getByRole("button", { name: "展开门店列表" }).click();
+  await page.getByRole("button", { name: "咖啡 1" }).click();
   await expect(page.getByRole("button", { name: "选择M Stand" })).toBeVisible();
   await expect(page.getByRole("button", { name: "选择喜茶" })).toHaveCount(0);
 
-  await page.getByRole("tab", { name: "全部 3" }).click();
+  await page.getByRole("button", { name: "全部 3" }).click();
   await page.getByRole("button", { name: "收起门店列表" }).click();
   await page.getByRole("button", { name: "上海国金中心，2 家门店" }).click();
   await expect(page.getByTestId("store-drawer")).toHaveAttribute("data-state", "expanded");
@@ -120,18 +116,18 @@ test("location and category filters apply together to the map and list", async (
   await page.goto("/");
   await page.getByRole("button", { name: "使用我的位置" }).click();
 
-  await page.getByRole("tab", { name: "上海国金中心 2" }).click();
+  await page.getByRole("button", { name: "上海国金中心 2" }).click();
   await expect(page.getByRole("button", { name: "选择鲜果饮品" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "上海国金中心，2 家门店" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "全部 2" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "茶饮 1" })).toBeVisible();
-  await page.getByRole("tab", { name: "咖啡 1" }).click();
+  await expect(page.getByRole("button", { name: "全部 2" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "茶饮 1" })).toBeVisible();
+  await page.getByRole("button", { name: "咖啡 1" }).click();
   await expect(page.getByRole("button", { name: "上海国金中心，1 家门店" })).toBeVisible();
   await expect(page.getByRole("button", { name: "选择M Stand" })).toBeVisible();
   await expect(page.getByRole("button", { name: "选择喜茶" })).toHaveCount(0);
-  await expect(page.getByRole("tab", { name: "全部地点 1" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "上海国金中心 1" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "周边街铺 0" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "全部地点 1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "上海国金中心 1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "周边街铺 0" })).toBeDisabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 
@@ -142,6 +138,7 @@ test("drawer swipe owns the gesture without scrolling or reopening", async ({ pa
   await page.getByRole("button", { name: "使用我的位置" }).click();
 
   const drawer = page.getByTestId("store-drawer");
+  await page.getByRole("button", { name: "展开门店列表" }).click();
   const handle = page.getByRole("button", { name: "收起门店列表" });
   await expect(drawer).toHaveAttribute("data-state", "expanded");
   await expect(handle).toHaveCSS("touch-action", "none");
@@ -156,9 +153,9 @@ test("drawer swipe owns the gesture without scrolling or reopening", async ({ pa
 
   await expect(drawer).toHaveAttribute("data-state", "collapsed");
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
-  expect(await page.getByTestId("store-drawer").locator("div").last().evaluate(
-    (element) => getComputedStyle(element).overscrollBehaviorY,
-  )).toBe("contain");
+  expect(await page.getByTestId("store-drawer").evaluate(
+    (element) => getComputedStyle(element).overscrollBehavior,
+  )).toContain("contain");
 });
 
 test("map drawer uses one content rail and stays within a 360px viewport", async ({ page }) => {
@@ -169,8 +166,8 @@ test("map drawer uses one content rail and stays within a 360px viewport", async
 
   const leftEdges = await Promise.all([
     page.getByRole("heading", { name: "附近好喝的", level: 1 }).evaluate((element) => element.getBoundingClientRect().left),
-    page.getByRole("heading", { name: "附近好喝的", level: 2 }).evaluate((element) => element.getBoundingClientRect().left),
-    page.getByRole("tab", { name: "全部 3" }).evaluate((element) => element.getBoundingClientRect().left),
+    page.getByRole("heading", { name: "门店目录", level: 2 }).evaluate((element) => element.getBoundingClientRect().left),
+    page.getByRole("button", { name: "全部 3" }).evaluate((element) => element.getBoundingClientRect().left),
     page.getByRole("article", { name: "喜茶门店信息" }).evaluate((element) => element.getBoundingClientRect().left),
   ]);
   expect(Math.max(...leftEdges) - Math.min(...leftEdges)).toBeLessThanOrEqual(1);

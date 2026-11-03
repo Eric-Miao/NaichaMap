@@ -1,4 +1,5 @@
 import { PlaceSearchError, searchPlaces } from "@/features/place-search/service";
+import { jsonError } from "@/lib/http/responses";
 
 export async function handlePlaceSearch(
   request: Request,
@@ -9,15 +10,9 @@ export async function handlePlaceSearch(
     return Response.json({ results: await search(query) });
   } catch (error) {
     if (error instanceof PlaceSearchError) {
-      return Response.json(
-        { error: { code: error.code, message: error.message, retryable: error.retryable } },
-        { status: error.code === "INVALID_QUERY" ? 400 : 503 },
-      );
+      return jsonError(error.code, error.message, error.retryable, error.code === "INVALID_QUERY" ? 400 : 503);
     }
-    return Response.json(
-      { error: { code: "SEARCH_UNAVAILABLE", message: "暂时无法搜索地点", retryable: true } },
-      { status: 503 },
-    );
+    return jsonError("SEARCH_UNAVAILABLE", "暂时无法搜索地点", true, 503);
   }
 }
 

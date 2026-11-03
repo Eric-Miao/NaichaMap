@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createNearbyService, type NearbyDependencies } from "../../src/features/nearby/service";
+import { getSearchCell } from "../../src/lib/geo/grid";
 
 const point = { lng: 121.4737, lat: 31.2304 };
+const cellId = getSearchCell(point).id;
 const dbStore = {
   store_id: "store-1",
   provider: "amap",
@@ -65,7 +67,6 @@ function dependencies(overrides: Partial<NearbyDependencies> = {}): NearbyDepend
       finishSearchArea: vi.fn(),
       saveMalls: vi.fn(async () => []),
       saveStores: vi.fn(async () => {}),
-      markPossiblyClosed: vi.fn(async () => {}),
       listMallCandidates: vi.fn(async () => []),
     },
     provider: {
@@ -97,7 +98,6 @@ describe("createNearbyService", () => {
     vi.mocked(deps.repository.claimSearchArea).mockResolvedValueOnce({
       shouldFetch: true,
       leaseToken: "lease-1",
-      hasStaleData: true,
     });
     vi.mocked(deps.provider.searchBeverages).mockResolvedValueOnce([normalizedPoi, normalizedPoi]);
 
@@ -105,7 +105,7 @@ describe("createNearbyService", () => {
 
     expect(result.cacheStatus).toBe("refreshed");
     expect(deps.repository.saveStores).toHaveBeenCalledWith([normalizedPoi], []);
-    expect(deps.repository.finishSearchArea).toHaveBeenCalledWith("lease-1", 1, true);
+    expect(deps.repository.finishSearchArea).toHaveBeenCalledWith(cellId, "lease-1", 1, true);
     expect(vi.mocked(deps.repository.saveStores).mock.calls[0][0][0]).not.toHaveProperty("manualLockFields");
   });
 
@@ -116,7 +116,6 @@ describe("createNearbyService", () => {
     vi.mocked(deps.repository.claimSearchArea).mockResolvedValueOnce({
       shouldFetch: true,
       leaseToken: "lease-1",
-      hasStaleData: false,
     });
     vi.mocked(deps.repository.saveMalls).mockResolvedValueOnce([fetchedMall]);
     vi.mocked(deps.repository.listMallCandidates).mockResolvedValue([persistedMall, fetchedMall]);
@@ -136,7 +135,6 @@ describe("createNearbyService", () => {
     vi.mocked(deps.repository.claimSearchArea).mockResolvedValueOnce({
       shouldFetch: true,
       leaseToken: "lease-1",
-      hasStaleData: false,
     });
     vi.mocked(deps.repository.saveMalls).mockResolvedValueOnce([fetchedMall]);
     vi.mocked(deps.repository.listMallCandidates).mockResolvedValueOnce([persistedMall]);
@@ -149,23 +147,6 @@ describe("createNearbyService", () => {
     );
   });
 
-  it("does not infer closures from a non-authoritative provider refresh", async () => {
-    const deps = dependencies();
-    vi.mocked(deps.repository.getCacheState).mockResolvedValueOnce(null);
-    vi.mocked(deps.repository.getNearby)
-      .mockResolvedValueOnce([{ ...dbStore, provider_place_id: "old-poi" }])
-      .mockResolvedValueOnce([dbStore]);
-    vi.mocked(deps.repository.claimSearchArea).mockResolvedValueOnce({
-      shouldFetch: true,
-      leaseToken: "lease-1",
-      hasStaleData: true,
-    });
-
-    await createNearbyService(deps)(point);
-
-    expect(deps.repository.markPossiblyClosed).not.toHaveBeenCalled();
-  });
-
   it("returns stale cached data when AMap refresh fails", async () => {
     const deps = dependencies();
     vi.mocked(deps.repository.getCacheState).mockResolvedValueOnce({
@@ -175,7 +156,6 @@ describe("createNearbyService", () => {
     vi.mocked(deps.repository.claimSearchArea).mockResolvedValueOnce({
       shouldFetch: true,
       leaseToken: "lease-1",
-      hasStaleData: true,
     });
     vi.mocked(deps.provider.searchBeverages).mockRejectedValueOnce(new Error("provider down"));
 
@@ -183,7 +163,7 @@ describe("createNearbyService", () => {
 
     expect(result.cacheStatus).toBe("stale");
     expect(result.groups).toHaveLength(1);
-    expect(deps.repository.finishSearchArea).toHaveBeenCalledWith("lease-1", 0, false);
+    expect(deps.repository.finishSearchArea).toHaveBeenCalledWith(cellId, "lease-1", 0, false);
   });
 
   it("throws a stable error when AMap fails without cached data", async () => {
@@ -193,7 +173,6 @@ describe("createNearbyService", () => {
     vi.mocked(deps.repository.claimSearchArea).mockResolvedValueOnce({
       shouldFetch: true,
       leaseToken: "lease-1",
-      hasStaleData: false,
     });
     vi.mocked(deps.provider.searchBeverages).mockRejectedValueOnce(new Error("provider down"));
 
@@ -212,7 +191,6 @@ describe("createNearbyService", () => {
     vi.mocked(deps.repository.claimSearchArea).mockResolvedValueOnce({
       shouldFetch: true,
       leaseToken: "lease-1",
-      hasStaleData: false,
     });
     vi.mocked(deps.provider.searchMalls).mockRejectedValueOnce(
       Object.assign(new Error("coordinates=121.4,31.2 key=secret-key"), { code: "AMAP_TIMEOUT" }),
@@ -242,7 +220,7 @@ describe("createNearbyService", () => {
       [normalizedPoi],
       [expect.objectContaining({ id: "cached-mall" })],
     );
-    expect(deps.repository.finishSearchArea).toHaveBeenCalledWith("lease-1", 1, true);
+    expect(deps.repository.finishSearchArea).toHaveBeenCalledWith(cellId, "lease-1", 1, true);
     expect(deps.diagnostic).toHaveBeenCalledWith({ stage: "malls", code: "AMAP_TIMEOUT" });
   });
 

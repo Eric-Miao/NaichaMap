@@ -4,7 +4,16 @@ import { initialMapState, mapReducer } from "../../src/features/map/reducer";
 
 const mallResponse = {
   currentMall: { id: "mall-1", name: "环贸iapm", address: "淮海中路", distanceM: 20 },
-  groups: [],
+  groups: [
+    {
+      kind: "mall" as const,
+      id: "mall-1",
+      mall: { id: "mall-1", name: "上海国金中心", address: "世纪大道8号", distanceM: 80 },
+      stores: [
+        { id: "tea-1", name: "喜茶", branchName: null, category: "tea_drink" as const, address: "世纪大道8号", mallId: "mall-1", location: { lng: 121.5, lat: 31.24 }, distanceM: 120 },
+      ],
+    },
+  ],
   cacheStatus: "fresh" as const,
 };
 
@@ -16,13 +25,13 @@ describe("mapReducer", () => {
     expect(mapReducer(initialMapState, { type: "LOCATION_UNAVAILABLE" }).status).toBe("unavailable");
   });
 
-  it("covers cache loading, provider refresh and mall results", () => {
+  it("covers cache loading, provider refresh and ready results", () => {
     const loading = mapReducer(initialMapState, { type: "LOAD_START" });
     const refreshing = mapReducer(loading, { type: "REFRESH_START" });
     const ready = mapReducer(refreshing, { type: "LOAD_SUCCESS", payload: mallResponse });
     expect(loading.status).toBe("loading-cache");
     expect(refreshing.status).toBe("refreshing");
-    expect(ready.status).toBe("ready-mall");
+    expect(ready.status).toBe("ready");
   });
 
   it("distinguishes nearby, empty and stale results", () => {
@@ -38,7 +47,7 @@ describe("mapReducer", () => {
       type: "LOAD_SUCCESS",
       payload: { ...mallResponse, currentMall: null, cacheStatus: "stale" },
     });
-    expect(nearby.status).toBe("ready-nearby");
+    expect(nearby.status).toBe("ready");
     expect(empty.status).toBe("empty");
     expect(stale.status).toBe("stale");
   });

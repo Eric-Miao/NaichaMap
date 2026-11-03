@@ -8,7 +8,7 @@
 - `SUPABASE_SECRET_KEY`：仅服务端使用的 Secret Key。
 - `AMAP_WEB_SERVICE_KEY`：已获许可的高德 Web Service Key。
 - `IP_HASH_SALT`：至少 32 个随机字符，用于不可逆哈希提交者 IP。
-- `NEXT_PUBLIC_MAP_STYLE_URL`：可选的 MapCN/MapLibre 样式 URL；不填时使用内置低依赖底图。
+- `NEXT_PUBLIC_MAP_STYLE_URL`：可选的 MapCN/MapLibre 样式 URL；不填或加载失败时使用内置的示意底图，标记仍按真实坐标缩放。
 
 `SUPABASE_SECRET_KEY`、数据库密码、`AMAP_WEB_SERVICE_KEY` 和 `IP_HASH_SALT` 必须由维护者直接填入本地或 Vercel 的秘密存储，不能发到聊天、截图、日志或提交到 Git。曾在聊天或其他非秘密渠道出现过的数据库密码应立即在 Supabase 中轮换，再更新本地与 Vercel。
 
@@ -37,6 +37,8 @@ npm install
 cp .env.example .env.local
 npm run dev
 ```
+
+`install`、`dev` 和 `build` 都会执行 `scripts/copy-maplibre-worker.mjs`，把 MapLibre worker 复制到 `public/maplibre/`。该目录是构建产物，已在 `.gitignore` 中忽略。
 
 提交前运行完整闸门：
 

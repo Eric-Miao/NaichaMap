@@ -17,6 +17,12 @@ V1 不包含导航、楼层信息、小程序直达、用户账号或独立管�
 
 V1 已完成本地实现：定位或手动搜索地点后，页面会展示 1 公里内门店；商场判断可信时优先显示当前商场，否则保留已确认的商场分组并展示周边街铺。
 
+## 交互与视觉
+
+界面像一张奶茶店柜台上的纸质索引：奶油纸面、深焙茶墨文字、1px 分隔线、两位数字索引，唯一强调色是茶青。地图标记与目录行共用同一组编号；默认抽屉占 60% 屏高，首屏同时看到地图、当前商场和它的前三家店。
+
+完整的颜色、字体、组件和状态规则见 [DESIGN.md](DESIGN.md)。
+
 ## 技术栈
 
 - Vercel
@@ -39,6 +45,27 @@ npm run dev
 ```
 
 浏览器打开 `http://localhost:3000`。环境变量和值的填写方式、Supabase 初始化、Vercel 发布和回滚见 [部署说明](docs/deployment.md)。
+
+## 代码结构
+
+```text
+src/app/                 路由、元数据、全局 token
+src/components/          顶栏、地图、目录、入口、纠错弹层
+src/features/map/        客户端状态、选择器、投影锚点、API
+src/features/nearby/     刷新用例、Supabase 仓储、商场分组
+src/features/location/   浏览器定位
+src/features/place-search/ 地点检索
+src/lib/                 amap / geo / supabase / http / env
+```
+
+更细的依赖方向、关键接口和地图说明见 [架构说明](docs/architecture.md)。
+
+## 地图与坐标
+
+- 门店以 WGS84 存储；调用高德时转换为 GCJ-02。
+- 标记位置由 `src/lib/geo/viewport.ts` 按 Web Mercator 拟合后投影，和 MapLibre 底图保持一致；不再使用与底图无关的百分比布局。
+- `NEXT_PUBLIC_MAP_STYLE_URL` 缺失或底图加载失败时显示带注册网格的“示意视图”，标记仍按真实坐标缩放。
+- MapLibre worker 由 `scripts/copy-maplibre-worker.mjs` 在安装、开发和构建时复制到 `public/maplibre/`，不要提交该产物。
 
 ## 验证
 
