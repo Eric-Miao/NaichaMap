@@ -8,7 +8,7 @@
 - `SUPABASE_SECRET_KEY`：仅服务端使用的 Secret Key。
 - `AMAP_WEB_SERVICE_KEY`：已获许可的高德 Web Service Key。
 - `IP_HASH_SALT`：至少 32 个随机字符，用于不可逆哈希提交者 IP。
-- `NEXT_PUBLIC_MAP_STYLE_URL`：可选的 MapCN/MapLibre 样式 URL；不填或加载失败时使用内置的示意底图，标记仍按真实坐标缩放。
+- `NEXT_PUBLIC_MAP_STYLE_URL`：可选。留空使用 CARTO Positron（OSM/WGS84，无需 key）；样式失败会自动切换 OpenFreeMap Positron。若填写 MapCN 等国内样式，注意 GCJ-02 坐标会让 WGS84 门店标记偏移。
 
 `SUPABASE_SECRET_KEY`、数据库密码、`AMAP_WEB_SERVICE_KEY` 和 `IP_HASH_SALT` 必须由维护者直接填入本地或 Vercel 的秘密存储，不能发到聊天、截图、日志或提交到 Git。曾在聊天或其他非秘密渠道出现过的数据库密码应立即在 Supabase 中轮换，再更新本地与 Vercel。
 
@@ -61,6 +61,8 @@ npm run test:e2e
 5. 检查 Vercel Function Logs：不得出现请求体、经纬度、原始 IP 或任何密钥，然后再提升到 Production。
 
 V1 的 Supabase 客户端只存在于 Vercel 服务端路由，浏览器包不包含 Supabase Publishable Key 或 Secret Key。
+
+地图默认走 OSM 体系（CARTO Positron，失败自动切 OpenFreeMap），不需要任何密钥。若此前在 Vercel 配过 `NEXT_PUBLIC_MAP_STYLE_URL` 且指向不可用的 MapCN 样式，请清空该变量后重新部署；`NEXT_PUBLIC_*` 是构建期内联的，改完必须重新构建。
 
 ## 5. 上海 12 点验收
 

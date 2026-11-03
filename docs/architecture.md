@@ -61,6 +61,8 @@ type NearbyRepository = {
 
 ## 地图
 
+- 附近半径 500 米；高德抓取半径 900 米。两者都是 `src/lib/geo/search.ts` 的常量。
+- 默认底图是 CARTO Positron（OSM 数据、WGS84、无需 key）。`NEXT_PUBLIC_MAP_STYLE_URL` 可覆盖；样式报错或 9 秒未加载会自动切换 OpenFreeMap Positron，再失败才显示示意网格。
 - 门店以 WGS84 存储；调用高德时转换为 GCJ-02。
 - `lib/geo/viewport.ts` 用 Web Mercator 自行拟合中心与缩放，并把经纬度投影成 CSS 像素；MapLibre 只负责底图，标记与底图共享同一套 `fitMapView` 结果，因此标记始终贴合真实坐标。
 - 地图容器由 `ResizeObserver` 驱动重新拟合；目录展开时地图变窄，收起后恢复。

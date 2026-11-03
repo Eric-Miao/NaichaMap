@@ -6,6 +6,8 @@ import { parsePostgisPoint, parsePostgisPolygon } from "@/lib/geo/postgis";
 import { collectAllPages } from "@/lib/supabase/pagination";
 import { createAdminClient } from "@/lib/supabase/server";
 
+import { NEARBY_RADIUS_M } from "@/lib/geo/search";
+
 import type { CacheState, NearbyStoreRecord, SearchClaim } from "./contracts";
 import { resolveMallForStore, type MallCandidate } from "./mall-confidence";
 
@@ -30,7 +32,7 @@ export function createNearbyRepository(): NearbyRepository {
       const { data, error } = await client.rpc("nearby_stores", {
         p_lng: point.lng,
         p_lat: point.lat,
-        p_radius_m: 1000,
+        p_radius_m: NEARBY_RADIUS_M,
       });
       if (error) throw error;
       return data as NearbyStoreRecord[];

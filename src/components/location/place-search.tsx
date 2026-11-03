@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { searchPlaces } from "@/features/map/api";
 import type { PlaceSearchResult } from "@/features/place-search/service";
+import { NEARBY_RADIUS_LABEL } from "@/lib/geo/search";
 
 import styles from "../experience.module.css";
 
@@ -48,7 +49,7 @@ export function PlaceSearch({ onSelect, onBack }: {
 
       <section className={styles.searchBody}>
         <h1 className={styles.searchTitle}>搜索上海商场或地点</h1>
-        <p className={styles.lede}>定位不可用时也能用。输入商场、写字楼或路口名称，我们展示它周边 1 公里。</p>
+        <p className={styles.lede}>定位不可用时也能用。输入商场、写字楼或路口名称，我们展示它周边 {NEARBY_RADIUS_LABEL}。</p>
 
         <form className={styles.searchForm} onSubmit={submit}>
           <label className={styles.srOnly} htmlFor="place-query">搜索上海商场或地点</label>

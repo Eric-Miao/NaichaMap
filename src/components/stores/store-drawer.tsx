@@ -141,7 +141,7 @@ export function StoreDrawer({
       )}
 
       <footer className={styles.drawerFooter}>
-        数据 © 高德地图 · 位置与营业状态以现场为准
+        门店 © 高德地图 · 底图版权见地图角标
       </footer>
     </aside>
   );

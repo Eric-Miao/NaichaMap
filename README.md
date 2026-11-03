@@ -6,7 +6,7 @@
 
 - 上海范围内按需查询门店
 - 奶茶、现制饮品和咖啡分类
-- MapCN / MapLibre 地图与上滑门店菜单
+- MapLibre + OSM 底图（CARTO Positron，失败切 OpenFreeMap） 地图与上滑门店菜单
 - 高德查询结果规范化后缓存到 Supabase，缓存有效期 30 天
 - 无需登录的纠错提交，同一 IP 每 5 分钟最多一次
 - 复制品牌名后前往微信搜索
@@ -15,7 +15,7 @@ V1 不包含导航、楼层信息、小程序直达、用户账号或独立管�
 
 ## 当前状态
 
-V1 已完成本地实现：定位或手动搜索地点后，页面会展示 1 公里内门店；商场判断可信时优先显示当前商场，否则保留已确认的商场分组并展示周边街铺。
+V1 已完成本地实现：定位或手动搜索地点后，页面会展示 500 米内门店；商场判断可信时优先显示当前商场，否则保留已确认的商场分组并展示周边街铺。
 
 ## 交互与视觉
 
@@ -28,7 +28,7 @@ V1 已完成本地实现：定位或手动搜索地点后，页面会展示 1 �
 - Vercel
 - React + TypeScript
 - Tailwind CSS + shadcn/ui
-- MapCN / MapLibre
+- MapLibre + OSM 底图（CARTO Positron，失败切 OpenFreeMap）
 - Supabase PostgreSQL + PostGIS
 - 高德 Web Service API（已取得适用本项目的邮件许可）
 
@@ -62,9 +62,11 @@ src/lib/                 amap / geo / supabase / http / env
 
 ## 地图与坐标
 
+- 附近范围固定为 500 米；高德抓取半径 900 米，留出网格边缘余量。
 - 门店以 WGS84 存储；调用高德时转换为 GCJ-02。
+- 默认底图是 CARTO Positron（OSM 数据、WGS84、无需 key）；`NEXT_PUBLIC_MAP_STYLE_URL` 可覆盖。样式错误或 9 秒未加载时自动切换 OpenFreeMap Positron，两边都失败才显示带注册网格的“示意视图”。
 - 标记位置由 `src/lib/geo/viewport.ts` 按 Web Mercator 拟合后投影，和 MapLibre 底图保持一致；不再使用与底图无关的百分比布局。
-- `NEXT_PUBLIC_MAP_STYLE_URL` 缺失或底图加载失败时显示带注册网格的“示意视图”，标记仍按真实坐标缩放。
+- 如果自建样式使用 GCJ-02，标记会与 WGS84 门店偏移，不建议混用。
 - MapLibre worker 由 `scripts/copy-maplibre-worker.mjs` 在安装、开发和构建时复制到 `public/maplibre/`，不要提交该产物。
 
 ## 验证

@@ -92,6 +92,7 @@ export function MapShell({
       </header>
 
       <StoreMap
+        key={styleUrl ?? "default"}
         styleUrl={styleUrl}
         userPoint={userPoint}
         groups={view.groups}

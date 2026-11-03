@@ -12,7 +12,7 @@ describe("getSearchCell", () => {
     const second = getSearchCell({ lng: 121.4749, lat: 31.2349 });
 
     expect(second.id).toBe(first.id);
-    expect(first.fetchRadiusM).toBe(1500);
+    expect(first.fetchRadiusM).toBe(900);
   });
 
   it("returns a stable center that resolves to the same cell", () => {

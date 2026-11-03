@@ -50,7 +50,7 @@ export class AmapClient {
     this.brands = options.brands ?? [];
   }
 
-  async searchBeverages(centerGcj02: GeoPoint, radius = 1500): Promise<NormalizedPoi[]> {
+  async searchBeverages(centerGcj02: GeoPoint, radius = 900): Promise<NormalizedPoi[]> {
     assertShanghaiLocation(centerGcj02);
     const results = await Promise.allSettled(
       BEVERAGE_QUERIES.map((query) =>
@@ -74,7 +74,7 @@ export class AmapClient {
     return unique.filter((poi) => classifyPoi(poi) !== null).map((poi) => normalizePoi(poi, this.brands));
   }
 
-  async searchMalls(centerGcj02: GeoPoint, radius = 1500): Promise<NormalizedPlace[]> {
+  async searchMalls(centerGcj02: GeoPoint, radius = 900): Promise<NormalizedPlace[]> {
     assertShanghaiLocation(centerGcj02);
     const results = await Promise.allSettled(
       MALL_QUERIES.map((query) =>

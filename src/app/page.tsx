@@ -11,6 +11,8 @@ import { MapShell } from "@/components/map/map-shell";
 import { useNearby } from "@/features/map/use-nearby";
 import type { PlaceSearchResult } from "@/features/place-search/service";
 import { getPublicEnv } from "@/lib/env/public";
+import { DEFAULT_MAP_STYLE_URL } from "@/lib/map/styles";
+import { NEARBY_RADIUS_LABEL } from "@/lib/geo/search";
 
 function staleLabel(cachedAt?: string | null) {
   if (!cachedAt) return "显示的是较早数据";
@@ -26,7 +28,7 @@ export default function HomePage() {
   const [manualSearch, setManualSearch] = useState(false);
   const [placeLabel, setPlaceLabel] = useState<string | null>(null);
   const [correctionOpen, setCorrectionOpen] = useState(false);
-  const styleUrl = getPublicEnv().NEXT_PUBLIC_MAP_STYLE_URL;
+  const styleUrl = getPublicEnv().NEXT_PUBLIC_MAP_STYLE_URL ?? DEFAULT_MAP_STYLE_URL;
 
   function selectPlace(place: PlaceSearchResult) {
     setPlaceLabel(place.label);
@@ -62,7 +64,7 @@ export default function HomePage() {
   if (!state.data || !userPoint) return <PageStatus kind="loading" />;
 
   const storeCount = state.data.groups.reduce((total, group) => total + group.stores.length, 0);
-  const subtitle = `附近 1 公里 · 共 ${storeCount} 家`;
+  const subtitle = `附近 ${NEARBY_RADIUS_LABEL} · 共 ${storeCount} 家`;
 
   return (
     <div className={styles.page}>

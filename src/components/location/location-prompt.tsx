@@ -1,9 +1,11 @@
 import { ArrowRight, LocateFixed, Search } from "lucide-react";
 
+import { NEARBY_RADIUS_LABEL, NEARBY_SCALE_LABEL } from "@/lib/geo/search";
+
 import styles from "../experience.module.css";
 
 const COPY = {
-  permission: "允许定位后，只用这次坐标找 1 公里内的奶茶、饮品和咖啡店。",
+  permission: "允许定位后，只用这次坐标找 500 米内的奶茶、饮品和咖啡店。",
   denied: "没有定位权限也没关系，直接搜索你所在的商场或地点。",
   unavailable: "当前设备无法定位，可以改用上海地点搜索。",
 } as const;
@@ -14,7 +16,7 @@ function renderCopy(state: keyof typeof COPY) {
     <>
       允许定位后，只用这次坐标
       <br />
-      找 <span className={styles.nowrap}>1 公里内</span>的奶茶、饮品和咖啡店。
+      找 <span className={styles.nowrap}>{NEARBY_RADIUS_LABEL}内</span>的奶茶、饮品和咖啡店。
     </>
   );
 }
@@ -30,7 +32,7 @@ export function LocationPrompt({ state, onLocate, onSearch }: {
 
       <header className={styles.brandBar}>
         <span className={styles.wordmark}>奶茶地图</span>
-        <span className={styles.brandMeta}>SHANGHAI / 1 KM</span>
+        <span className={styles.brandMeta}>SHANGHAI / {NEARBY_SCALE_LABEL}</span>
       </header>
 
       <section className={styles.entryHero}>

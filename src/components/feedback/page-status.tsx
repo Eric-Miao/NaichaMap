@@ -1,3 +1,5 @@
+import { NEARBY_SCALE_LABEL } from "@/lib/geo/search";
+
 import styles from "../experience.module.css";
 
 const STATUS = {
@@ -48,7 +50,7 @@ export function PageStatus({ kind, message, retryable = false, onRetry, onCorrec
           </div>
         ) : null}
 
-        <footer className={styles.statusFooter}>NAICHAMAP / SHANGHAI / 1 KM</footer>
+        <footer className={styles.statusFooter}>NAICHAMAP / SHANGHAI / {NEARBY_SCALE_LABEL}</footer>
       </section>
     </main>
   );
