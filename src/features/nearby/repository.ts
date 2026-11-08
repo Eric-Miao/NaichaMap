@@ -18,7 +18,7 @@ export type NearbyRepository = {
   finishSearchArea(cellId: string, leaseToken: string, resultCount: number, success: boolean): Promise<void>;
   saveMalls(malls: NormalizedPlace[]): Promise<MallCandidate[]>;
   saveStores(stores: NormalizedPoi[], malls: MallCandidate[]): Promise<void>;
-  listMallCandidates(): Promise<MallCandidate[]>;
+  listMallCandidates(centerGcj02: GeoPoint, radiusM: number): Promise<MallCandidate[]>;
 };
 
 export type { NearbyStoreRecord };
@@ -139,11 +139,17 @@ export function createNearbyRepository(): NearbyRepository {
       if (error) throw error;
     },
 
-    async listMallCandidates() {
+    async listMallCandidates(centerGcj02, radiusM) {
+      const latDelta = radiusM / 111_320;
+      const lngDelta = radiusM / (111_320 * Math.max(Math.cos((centerGcj02.lat * Math.PI) / 180), 0.2));
       const data = await collectAllPages(async (from, to) => {
         const { data: page, error } = await client
           .from("malls")
           .select("id,provider_place_id,name,address,location_wgs84,boundary_wgs84")
+          .gte("location_gcj02_lng", centerGcj02.lng - lngDelta)
+          .lte("location_gcj02_lng", centerGcj02.lng + lngDelta)
+          .gte("location_gcj02_lat", centerGcj02.lat - latDelta)
+          .lte("location_gcj02_lat", centerGcj02.lat + latDelta)
           .order("id", { ascending: true })
           .range(from, to);
         if (error) throw error;

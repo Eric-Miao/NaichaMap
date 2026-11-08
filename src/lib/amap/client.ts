@@ -46,7 +46,7 @@ export class AmapClient {
   constructor(options: AmapClientOptions = {}) {
     this.key = options.key ?? getServerEnv().AMAP_WEB_SERVICE_KEY;
     this.fetchImpl = options.fetch ?? fetch;
-    this.timeoutMs = options.timeoutMs ?? 3500;
+    this.timeoutMs = options.timeoutMs ?? 3000;
     this.brands = options.brands ?? [];
   }
 
@@ -54,11 +54,15 @@ export class AmapClient {
     assertShanghaiLocation(centerGcj02);
     const results = await Promise.allSettled(
       BEVERAGE_QUERIES.map((query) =>
-        this.searchPages("https://restapi.amap.com/v3/place/around", {
-          location: `${centerGcj02.lng},${centerGcj02.lat}`,
-          radius: String(radius),
-          ...query,
-        }),
+        this.searchPages(
+          "https://restapi.amap.com/v3/place/around",
+          {
+            location: `${centerGcj02.lng},${centerGcj02.lat}`,
+            radius: String(radius),
+            ...query,
+          },
+          2,
+        ),
       ),
     );
     const batches = results.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
@@ -78,11 +82,15 @@ export class AmapClient {
     assertShanghaiLocation(centerGcj02);
     const results = await Promise.allSettled(
       MALL_QUERIES.map((query) =>
-        this.searchPages("https://restapi.amap.com/v3/place/around", {
-          location: `${centerGcj02.lng},${centerGcj02.lat}`,
-          radius: String(radius),
-          ...query,
-        }),
+        this.searchPages(
+          "https://restapi.amap.com/v3/place/around",
+          {
+            location: `${centerGcj02.lng},${centerGcj02.lat}`,
+            radius: String(radius),
+            ...query,
+          },
+          1,
+        ),
       ),
     );
     const batches = results.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
@@ -99,11 +107,15 @@ export class AmapClient {
   }
 
   async searchPlaces(query: string): Promise<NormalizedPlace[]> {
-    const pois = await this.searchPages("https://restapi.amap.com/v3/place/text", {
-      keywords: query,
-      city: "上海",
-      citylimit: "true",
-    });
+    const pois = await this.searchPages(
+      "https://restapi.amap.com/v3/place/text",
+      {
+        keywords: query,
+        city: "上海",
+        citylimit: "true",
+      },
+      1,
+    );
     return this.dedupe(pois).map(normalizePlace);
   }
 
@@ -111,19 +123,38 @@ export class AmapClient {
     return [...new Map(pois.map((poi) => [poi.id, poi])).values()];
   }
 
-  private async searchPages(endpoint: string, params: Record<string, string>): Promise<AmapPoi[]> {
-    const all: AmapPoi[] = [];
+  private async searchPages(
+    endpoint: string,
+    params: Record<string, string>,
+    maxPages = 1,
+  ): Promise<AmapPoi[]> {
     const offset = 25;
+    const first = await this.request(endpoint, { ...params, page: "1", offset: String(offset) });
+    const pois = first.pois ?? [];
+    const total = Number(first.count ?? pois.length);
+    const pages = Number.isFinite(total)
+      ? Math.min(maxPages, Math.max(1, Math.ceil(total / offset)))
+      : 1;
+    if (pages <= 1 || pois.length === 0) return pois;
 
-    for (let page = 1; page <= 3; page += 1) {
-      const response = await this.request(endpoint, { ...params, page: String(page), offset: String(offset) });
-      const pois = response.pois ?? [];
-      all.push(...pois);
-      const total = Number(response.count ?? pois.length);
-      if (!Number.isFinite(total) || page * offset >= total || pois.length === 0) break;
-    }
+    // Pages after the first are independent; request them together instead of
+    // walking 25 results at a time with the user waiting.
+    const rest = await Promise.allSettled(
+      Array.from({ length: pages - 1 }, (_, index) =>
+        this.request(endpoint, {
+          ...params,
+          page: String(index + 2),
+          offset: String(offset),
+        }),
+      ),
+    );
 
-    return all;
+    return [
+      ...pois,
+      ...rest.flatMap((result) =>
+        result.status === "fulfilled" ? (result.value.pois ?? []) : [],
+      ),
+    ];
   }
 
   private async request(endpoint: string, params: Record<string, string>): Promise<AmapSearchResponse> {

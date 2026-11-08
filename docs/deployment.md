@@ -14,12 +14,16 @@
 
 ## 2. Supabase 初始化
 
-推荐使用已绑定项目的 Supabase MCP 应用 `supabase/migrations` 下两份迁移；也可以安装 Supabase CLI 后执行：
+推荐使用已绑定项目的 Supabase MCP 应用 `supabase/migrations` 下的迁移；也可以安装 Supabase CLI 后执行：
 
 ```bash
 npx supabase link --project-ref cviyfbudarsxxyvjsioc
 npx supabase db push
 ```
+
+`202611080001_mall_gcj02_index.sql` 为商场包围盒查询加索引。不应用也能工作（会回退到扫描），但冷启动会慢；发布前请确认已推送。
+
+冷启动日志里会有一条 `nearby_refresh`，包含 `ms`、`cacheStatus` 和 `stores`，不含坐标或密钥。若 `ms` 仍然很高，先看是哪一段慢，再决定是否继续减少高德查询组。
 
 验证 PostGIS、表、RPC 与 RLS：
 

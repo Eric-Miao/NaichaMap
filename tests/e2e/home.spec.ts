@@ -295,6 +295,37 @@ test("map pans with a drag, keeps markers attached and can reset", async ({ page
   expect(Math.abs(restored!.y - before!.y)).toBeLessThan(10);
 });
 
+test("drawer slides over the map without resizing it and scrolls to the last row", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+
+  const drawer = page.getByTestId("store-drawer");
+  const map = page.locator('[class*="mapFrame"]');
+  const collapsed = await drawer.boundingBox();
+  const mapBefore = await map.boundingBox();
+  expect(collapsed).not.toBeNull();
+
+  await page.getByRole("button", { name: "展开门店列表" }).click();
+  await page.waitForTimeout(450);
+  const expanded = await drawer.boundingBox();
+  const mapAfter = await map.boundingBox();
+  expect(expanded!.y).toBeLessThan(collapsed!.y - 60);
+  expect(mapAfter!.height).toBeCloseTo(mapBefore!.height, 0);
+
+  await page.getByRole("button", { name: "收起门店列表" }).click();
+  await page.waitForTimeout(450);
+
+  const list = page.getByTestId("store-list");
+  await list.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect(page.getByRole("button", { name: "选择鲜果饮品" })).toBeVisible();
+  const lastRow = await page.getByRole("button", { name: "选择鲜果饮品" }).boundingBox();
+  expect(lastRow!.y).toBeLessThan(830);
+});
+
 test("selected map markers play their press animation", async ({ page }) => {
   await mockLocation(page, "success");
   await page.goto("/");

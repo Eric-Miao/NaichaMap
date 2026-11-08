@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { type CSSProperties, useRef, useState } from "react";
 
 import type { GroupFilter, MapFilter } from "@/features/map/reducer";
 import type { DirectoryView } from "@/features/map/selectors";
@@ -35,44 +35,76 @@ export function StoreDrawer({
   onSelectStore: (id: string) => void;
   onCorrection: () => void;
 }) {
-  const touchStartY = useRef<number | null>(null);
+  const sheetRef = useRef<HTMLElement>(null);
+  const dragStart = useRef<{ y: number; expanded: boolean; range: number } | null>(null);
   const suppressClick = useRef(false);
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const isEmpty = view.locations.length === 0;
+
+  function peekPx() {
+    return Math.min(window.innerHeight * 0.6, 520);
+  }
 
   return (
     <aside
+      ref={sheetRef}
       className={styles.drawer}
       data-state={expanded ? "expanded" : "collapsed"}
+      data-dragging={dragging ? "true" : undefined}
       data-testid="store-drawer"
+      style={{ "--drag": `${dragY}px` } as CSSProperties}
     >
       <button
         type="button"
         className={styles.drawerHandle}
         aria-label={expanded ? "收起门店列表" : "展开门店列表"}
         aria-expanded={expanded}
-        onClick={(event) => {
-          if (suppressClick.current && event.detail > 0) {
+        onClick={() => {
+          if (suppressClick.current) {
             suppressClick.current = false;
             return;
           }
-          suppressClick.current = false;
           onExpandedChange(!expanded);
         }}
         onTouchStart={(event) => {
+          const touch = event.touches[0];
+          if (!touch) return;
           suppressClick.current = false;
-          touchStartY.current = event.touches[0]?.clientY ?? null;
+          dragStart.current = {
+            y: touch.clientY,
+            expanded,
+            range: Math.max(0, (sheetRef.current?.offsetHeight ?? 0) - peekPx()),
+          };
+          setDragging(true);
+          setDragY(0);
+        }}
+        onTouchMove={(event) => {
+          const start = dragStart.current;
+          const touch = event.touches[0];
+          if (!start || !touch) return;
+          const delta = touch.clientY - start.y;
+          const clamped = start.expanded
+            ? Math.min(Math.max(delta, 0), start.range)
+            : Math.max(Math.min(delta, 0), -start.range);
+          setDragY(clamped);
         }}
         onTouchEnd={(event) => {
-          const start = touchStartY.current;
+          const start = dragStart.current;
           const end = event.changedTouches[0]?.clientY;
-          touchStartY.current = null;
-          if (start == null || end == null) return;
-          if (Math.abs(end - start) <= 30) return;
+          dragStart.current = null;
+          setDragging(false);
+          setDragY(0);
+          if (!start || end == null) return;
+          const delta = end - start.y;
+          if (Math.abs(delta) <= 8) return;
           suppressClick.current = true;
-          onExpandedChange(end < start);
+          if (Math.abs(delta) > 30) onExpandedChange(delta < 0);
         }}
         onTouchCancel={() => {
-          touchStartY.current = null;
+          dragStart.current = null;
+          setDragging(false);
+          setDragY(0);
           suppressClick.current = false;
         }}
       >
@@ -107,7 +139,7 @@ export function StoreDrawer({
             <CategoryTabs counts={view.categories} value={filter} onChange={onFilterChange} />
           </div>
 
-          <div className={styles.list}>
+          <div className={styles.list} data-testid="store-list">
             {view.groups.length === 0 ? (
               <div className={styles.empty} role="status">
                 <p>这个筛选下没有门店</p>

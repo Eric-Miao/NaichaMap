@@ -25,7 +25,7 @@ app/（路由与页面）
 | 模块 | 职责 | 依赖 |
 | --- | --- | --- |
 | `service.ts` | 刷新决策、并发租约、降级、诊断事件 | 仓储接口 + 高德客户端 |
-| `repository.ts` | Supabase/PostGIS 适配器 | `createAdminClient` |
+| `repository.ts` | Supabase/PostGIS 适配器；商场按 GCJ-02 包围盒查询 | `createAdminClient` |
 | `grouping.ts` | 把扁平缓存行整理成“当前商场 / 周边商场 / 周边街铺” | 纯函数 |
 | `mall-confidence.ts` | 商场归属证据与距离计算 | 纯函数 |
 
@@ -47,6 +47,7 @@ type NearbyRepository = {
 - 测试通过 `createNearbyService(deps)` 注入仓储、时钟、sleep 和 provider，不触碰 Supabase 或网络。
 - 商场归属优先级：边界 → 高德父 POI + 500m → 名称/地址 + 500m；仅距离永不归属。
 - 商场查询失败时 `allowCurrentMall: false`，避免用不完整数据声称“你在这个商场”。
+- `listMallCandidates(centerGcj02, radiusM)` 只取搜索点周围 1400m 的商场，不再每次扫全表；`202611080001_mall_gcj02_index.sql` 给 GCJ-02 包围盒建索引。
 
 ## 客户端状态
 
@@ -59,6 +60,15 @@ type NearbyRepository = {
   - 每个门店的两位序号；
   - 每个分组的序号区间。
 - 选中态、筛选态和抽屉态都在 reducer 里，组件只派发动作。
+
+## 冷启动性能
+
+- 饮料和商场是两组独立的高德请求，冷启动时并行发出，不再先等饮料再查商场。
+- 高德每页 25 条：饮料最多取 2 页、商场和地点搜索只取 1 页；第 2 页在首页返回后并行请求，单页失败不会丢掉首页结果。
+- 单次高德请求超时 3 秒；某组关键词失败只丢弃该组，其他组仍返回。
+- 商场只按 1400m 包围盒查询，并和 `getNearby` 并行；`finishSearchArea` 与读取并行，少一个串行往返。
+- `getNearby` 在服务端打印 `nearby_refresh`（耗时、缓存状态、门店数），不包含坐标或密钥，用于 Vercel 日志定位慢点。
+- 部署新迁移后，冷启动通常从多次串行翻页降到两波并行请求 + 一次附近商场查询。
 
 ## URL 状态
 
@@ -76,8 +86,9 @@ type NearbyRepository = {
 - `lib/geo/viewport.ts` 用 Web Mercator 自行拟合中心与缩放，并把经纬度投影成 CSS 像素；缩放采用 MapLibre 的 512px 瓦片约定，标记与底图共享同一套投影，因此标记始终贴合真实坐标。
 - 地图可拖动/缩放（禁用旋转和倾斜）。`move`/`zoom` 事件把真实中心与缩放同步到 `liveView`，标记跟着实时投影；只有数据或容器尺寸变化时才重新拟合。
 - 右下角比例尺由 `scaleBar(view)` 计算；移动地图后出现“回到门店范围”，`easeTo` 回到 `fitView`。
-- 地图容器由 `ResizeObserver` 驱动重新拟合；目录展开时地图变窄，收起后恢复。
-- 目录展开到只剩窄条时，标记层只保留“我的位置”点和选中标记，避免堆叠。
+- 抽屉是绝对定位的 transform sheet：地图高度只由顶栏和 60svh 收起高度决定，展开时地图不重排。
+- 抽屉收起态列表增加底部补偿，保证最后一排能滚到可见区；把手下拉/上推跟手，超过 30px 吸附。
+- 目录展开盖住地图下半部时，标记层只保留“我的位置”点和选中标记，避免堆叠。
 - `setWorkerUrl("/maplibre/maplibre-gl-worker.mjs")` 解决 Next/Turbopack 下 MapLibre worker chunk 无法加载的问题；该文件由 `scripts/copy-maplibre-worker.mjs` 在 `predev`、`prebuild`、`postinstall` 生成，不提交仓库。
 - 默认 OSM 样式或 OpenFreeMap 都失败时，展示带注册网格的“示意视图”，标记仍按真实坐标缩放。
 

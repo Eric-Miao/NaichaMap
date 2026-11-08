@@ -8,6 +8,7 @@ import {
   type GeoPoint,
 } from "@/lib/geo/coordinates";
 import { getSearchCell } from "@/lib/geo/grid";
+import { MALL_QUERY_RADIUS_M } from "@/lib/geo/search";
 
 import type {
   CacheState,
@@ -63,7 +64,10 @@ async function waitForWinner(
     const state = await deps.repository.getCacheState(cellId);
     if (isFresh(state, deps.now())) {
       const rows = await deps.repository.getNearby(point);
-      const malls = await deps.repository.listMallCandidates();
+      const malls = await deps.repository.listMallCandidates(
+        wgs84ToGcj02(point),
+        MALL_QUERY_RADIUS_M,
+      );
       return groupStores(rows, malls, point, {
         cacheStatus: "refreshed",
         cachedAt: state?.lastFetchedAt,
@@ -72,7 +76,10 @@ async function waitForWinner(
   }
 
   if (staleRows.length > 0) {
-    const malls = await deps.repository.listMallCandidates();
+    const malls = await deps.repository.listMallCandidates(
+      wgs84ToGcj02(point),
+      MALL_QUERY_RADIUS_M,
+    );
     return groupStores(staleRows, malls, point, { cacheStatus: "stale" });
   }
   throw new NearbyServiceError("CACHE_REFRESHING", "附近门店正在刷新，请稍后重试", true);
@@ -86,7 +93,10 @@ export function createNearbyService(deps: NearbyDependencies) {
     const cache = await deps.repository.getCacheState(cell.id);
 
     if (isFresh(cache, deps.now())) {
-      const malls = await deps.repository.listMallCandidates();
+      const malls = await deps.repository.listMallCandidates(
+        wgs84ToGcj02(input),
+        MALL_QUERY_RADIUS_M,
+      );
       return groupStores(initialRows, malls, input, {
         cacheStatus: "fresh",
         cachedAt: cache?.lastFetchedAt,
@@ -105,29 +115,37 @@ export function createNearbyService(deps: NearbyDependencies) {
     let stage: NearbyDiagnostic["stage"] = "beverages";
     try {
       const providerCenter = wgs84ToGcj02(cell.center);
-      const fetchedStores = await deps.provider.searchBeverages(providerCenter, cell.fetchRadiusM);
-      stage = "malls";
-      let mallLookupSucceeded = true;
-      const fetchedMalls: NormalizedPlace[] = await deps.provider
-        .searchMalls(providerCenter, cell.fetchRadiusM)
-        .catch((error) => {
-          mallLookupSucceeded = false;
-          deps.diagnostic?.(toNearbyDiagnostic("malls", error));
-          return [];
-        });
+      // Beverages and malls are independent AMap lookups: run them together.
+      const [beverageResult, mallResult] = await Promise.allSettled([
+        deps.provider.searchBeverages(providerCenter, cell.fetchRadiusM),
+        deps.provider.searchMalls(providerCenter, cell.fetchRadiusM),
+      ]);
+      if (beverageResult.status === "rejected") throw beverageResult.reason;
+      const fetchedStores = beverageResult.value;
+      const mallLookupSucceeded = mallResult.status === "fulfilled";
+      const fetchedMalls: NormalizedPlace[] = mallLookupSucceeded ? mallResult.value : [];
+      if (!mallLookupSucceeded) {
+        deps.diagnostic?.(toNearbyDiagnostic("malls", mallResult.reason));
+      }
+
       const stores: NormalizedPoi[] = [
         ...new Map(fetchedStores.map((store) => [store.providerPlaceId, store])).values(),
       ];
       stage = "persistence";
       const savedMalls = await deps.repository.saveMalls(fetchedMalls);
-      const persistedMalls = await deps.repository.listMallCandidates();
+      const persistedMalls = await deps.repository.listMallCandidates(
+        providerCenter,
+        MALL_QUERY_RADIUS_M,
+      );
       const currentMalls = [
         ...new Map([...persistedMalls, ...savedMalls].map((mall) => [mall.id, mall])).values(),
       ];
       await deps.repository.saveStores(stores, currentMalls);
 
-      await deps.repository.finishSearchArea(cell.id, claim.leaseToken, stores.length, true);
-      const refreshedRows = await deps.repository.getNearby(input);
+      const [refreshedRows] = await Promise.all([
+        deps.repository.getNearby(input),
+        deps.repository.finishSearchArea(cell.id, claim.leaseToken, stores.length, true),
+      ]);
       return groupStores(refreshedRows, currentMalls, input, {
         cacheStatus: "refreshed",
         allowCurrentMall: mallLookupSucceeded,
@@ -140,7 +158,10 @@ export function createNearbyService(deps: NearbyDependencies) {
         deps.diagnostic?.(toNearbyDiagnostic("finish", finishError));
       }
       if (initialRows.length > 0) {
-        const malls = await deps.repository.listMallCandidates();
+        const malls = await deps.repository.listMallCandidates(
+          wgs84ToGcj02(input),
+          MALL_QUERY_RADIUS_M,
+        );
         return groupStores(initialRows, malls, input, {
           cacheStatus: "stale",
           cachedAt: cache?.lastFetchedAt,
@@ -152,11 +173,18 @@ export function createNearbyService(deps: NearbyDependencies) {
 }
 
 export async function getNearby(input: NearbyInput): Promise<NearbyResponse> {
-  return createNearbyService({
+  const started = Date.now();
+  const result = await createNearbyService({
     now: () => new Date(),
     sleep: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
     repository: createNearbyRepository(),
     provider: new AmapClient(),
     diagnostic: (event) => console.error("nearby_refresh_failed", event),
   })(input);
+  console.info("nearby_refresh", {
+    ms: Date.now() - started,
+    cacheStatus: result.cacheStatus,
+    stores: result.groups.reduce((total, group) => total + group.stores.length, 0),
+  });
+  return result;
 }

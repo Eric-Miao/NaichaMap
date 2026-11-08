@@ -80,6 +80,13 @@ src/lib/                 amap / geo / supabase / http / env
 - 如果自建样式使用 GCJ-02，标记会与 WGS84 门店偏移，不建议混用。
 - MapLibre worker 由 `scripts/copy-maplibre-worker.mjs` 在安装、开发和构建时复制到 `public/maplibre/`，不要提交该产物。
 
+## 冷启动与缓存
+
+- 饮料和商场两组高德请求并行；饮料最多取 2 页，商场和地点搜索取 1 页；单请求 3 秒超时，单组失败不拖垮整次搜索。
+- 商场只按搜索点周围 1400 米包围盒查询，不再扫全表。`202611080001_mall_gcj02_index.sql` 为这个查询建索引；未应用也能工作，但会回退到扫描。
+- 抽屉改为 `transform` bottom sheet，展开/收起不再改变地图高度；收起态列表有底部补偿，最后一排可滚到可见区。
+- 服务端会打印 `nearby_refresh` 日志，只包含耗时、缓存状态和门店数，不含坐标或密钥。
+
 ## 验证
 
 ```bash
