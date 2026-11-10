@@ -195,9 +195,10 @@ test("beverage markers remain legible and feedback follows the shell rail at med
       .map((channel) => channel / 255)
       .map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
       .reduce((total, channel, index) => total + channel * [0.2126, 0.7152, 0.0722][index], 0);
-    const style = getComputedStyle(element);
-    const foreground = luminance(parse(style.color));
-    const background = luminance(parse(style.backgroundColor));
+    const index = element.querySelector('[class*="pinIndex"]')!;
+    const path = element.querySelector("path")!;
+    const foreground = luminance(parse(getComputedStyle(index).color));
+    const background = luminance(parse(getComputedStyle(path).fill));
     return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
   });
   expect(contrast).toBeGreaterThanOrEqual(4.5);
@@ -324,6 +325,41 @@ test("drawer slides over the map without resizing it and scrolls to the last row
   await expect(page.getByRole("button", { name: "选择鲜果饮品" })).toBeVisible();
   const lastRow = await page.getByRole("button", { name: "选择鲜果饮品" }).boundingBox();
   expect(lastRow!.y).toBeLessThan(830);
+});
+
+test("selecting a store row collapses the sheet and highlights its pin", async ({ page }) => {
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+  await page.getByRole("button", { name: "展开门店列表" }).click();
+
+  await page.getByRole("button", { name: "选择喜茶" }).click();
+  await expect(page.getByTestId("store-drawer")).toHaveAttribute("data-state", "collapsed");
+  await expect(page.getByRole("article", { name: "喜茶门店信息" })).toHaveAttribute("data-selected", "true");
+  await expect(page.getByRole("button", { name: "喜茶", exact: true })).toHaveAttribute("data-selected", "true");
+  await expect(page.getByRole("button", { name: "上海国金中心，2 家门店" })).toHaveAttribute("data-selected", "true");
+});
+
+test("clicking a store pin highlights its row", async ({ page }) => {
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+
+  await page.getByRole("button", { name: "鲜果饮品", exact: true }).click();
+  await expect(page.getByRole("article", { name: "鲜果饮品门店信息" })).toHaveAttribute("data-selected", "true");
+  await expect(page.getByRole("button", { name: "鲜果饮品", exact: true })).toHaveAttribute("data-selected", "true");
+  await expect(page.getByTestId("store-drawer")).toHaveAttribute("data-state", "collapsed");
+});
+
+test("clicking a mall pin expands the list and highlights the group header", async ({ page }) => {
+  await mockLocation(page, "success");
+  await page.goto("/");
+  await page.getByRole("button", { name: "使用我的位置" }).click();
+
+  await page.getByRole("button", { name: "上海国金中心，2 家门店" }).click();
+  await expect(page.getByTestId("store-drawer")).toHaveAttribute("data-state", "expanded");
+  await expect(page.getByRole("button", { name: "查看上海国金中心门店" })).toHaveAttribute("data-selected", "true");
+  await expect(page.getByRole("button", { name: "上海国金中心，2 家门店" })).toHaveAttribute("data-selected", "true");
 });
 
 test("selected map markers play their press animation", async ({ page }) => {

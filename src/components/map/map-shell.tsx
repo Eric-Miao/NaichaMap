@@ -63,7 +63,8 @@ export function MapShell({
 
   function selectStore(id: string) {
     onSelectStore(id);
-    onDrawerExpandedChange(true);
+    // Collapse first so the selected pin is not hidden under an expanded sheet.
+    onDrawerExpandedChange(false);
     requestAnimationFrame(() => {
       document.getElementById(`store-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
     });

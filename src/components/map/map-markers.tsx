@@ -6,10 +6,7 @@ import { projectPoint, type MapView, type ViewportSize } from "@/lib/geo/viewpor
 
 import styles from "./map-ui.module.css";
 
-function rangeLabel(range: { start: string; end: string; count: number } | undefined) {
-  if (!range) return "—";
-  return range.count > 1 ? `${range.start}–${range.end}` : range.start;
-}
+const PIN_PATH = "M20 51C20 51 38 31 38 19A18 18 0 1 0 2 19C2 31 20 51 20 51Z";
 
 export function MapMarkers({
   userPoint,
@@ -31,10 +28,13 @@ export function MapMarkers({
   onSelectStore: (id: string) => void;
 }) {
   if (!projection) return null;
-  // When the directory is fully expanded the map becomes a thin band; keep the
-  // user locator and the selected marker, but skip the pile of other markers.
+
   const compact = size.height < 170;
   const anchors = mapAnchors(groups);
+  const selectedStore =
+    groups.flatMap((group) => group.stores).find((store) => store.id === selectedId) ?? null;
+  const selectedStoreInMall = Boolean(selectedStore?.mallId);
+
   const shownAnchors = compact
     ? anchors.filter((anchor) =>
         anchor.kind === "mall"
@@ -49,16 +49,12 @@ export function MapMarkers({
     return { left: `${x}px`, top: `${y}px` };
   };
 
-  const selectedStoreGroup = groups.find((group) =>
-    group.stores.some((store) => store.id === selectedId),
-  )?.id;
-
   return (
     <div className={styles.markerLayer} role="group" aria-label="门店地图标记">
       <span className={styles.userMarker} style={position(userPoint)} aria-label="我的位置" />
+
       {shownAnchors.map((anchor) => {
         if (anchor.kind === "mall") {
-          const range = view.rangeByGroupId[anchor.group.id];
           const selected =
             selectedId === anchor.group.id ||
             anchor.group.stores.some((store) => store.id === selectedId);
@@ -66,34 +62,71 @@ export function MapMarkers({
             <button
               key={anchor.group.id}
               type="button"
-              className={`${styles.mallMarker} ${selected ? styles.selected : ""}`}
+              className={[
+                styles.pin,
+                styles.mallPin,
+                selected ? styles.selected : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               style={position(anchor.point)}
               data-current={anchor.group.id === view.currentMallId || undefined}
+              data-selected={selected || undefined}
               aria-label={`${anchor.group.mall.name}，${anchor.group.stores.length} 家门店`}
+              aria-pressed={selected}
               onClick={() => onSelectGroup(anchor.group.id)}
             >
-              <span className={styles.mallIndex}>{rangeLabel(range)}</span>
-              <strong className={styles.mallName}>{anchor.group.mall.name}</strong>
-              <span className={styles.mallCount}>{anchor.group.stores.length}</span>
+              <svg className={styles.pinShape} viewBox="0 0 40 52" aria-hidden="true">
+                <path d={PIN_PATH} />
+              </svg>
+              <span className={styles.pinIndex}>{anchor.group.stores.length}</span>
             </button>
           );
         }
 
-        const selected = selectedId === anchor.store.id || selectedStoreGroup === anchor.group.id;
         return (
           <button
             key={anchor.store.id}
             type="button"
-            className={`${styles.marker} ${selected ? styles.selected : ""}`}
+            className={[styles.pin, selectedId === anchor.store.id ? styles.selected : ""]
+              .filter(Boolean)
+              .join(" ")}
             style={position(anchor.point)}
             data-category={anchor.store.category}
+            data-selected={selectedId === anchor.store.id || undefined}
             aria-label={anchor.store.name}
+            aria-pressed={selectedId === anchor.store.id}
             onClick={() => onSelectStore(anchor.store.id)}
           >
-            <span className={styles.markerIndex}>{view.indexByStoreId[anchor.store.id] ?? "—"}</span>
+            <svg className={styles.pinShape} viewBox="0 0 40 52" aria-hidden="true">
+              <path d={PIN_PATH} />
+            </svg>
+            <span className={styles.pinIndex}>
+              {view.indexByStoreId[anchor.store.id] ?? "—"}
+            </span>
           </button>
         );
       })}
+
+      {selectedStore && selectedStoreInMall ? (
+        <button
+          type="button"
+          className={`${styles.pin} ${styles.selected} ${styles.storePinSelected}`}
+          style={position(selectedStore.location)}
+          data-category={selectedStore.category}
+          data-selected="true"
+          aria-label={selectedStore.name}
+          aria-pressed="true"
+          onClick={() => onSelectStore(selectedStore.id)}
+        >
+          <svg className={styles.pinShape} viewBox="0 0 40 52" aria-hidden="true">
+            <path d={PIN_PATH} />
+          </svg>
+          <span className={styles.pinIndex}>
+            {view.indexByStoreId[selectedStore.id] ?? "—"}
+          </span>
+        </button>
+      ) : null}
     </div>
   );
 }

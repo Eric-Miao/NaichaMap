@@ -21,6 +21,7 @@ public/maplibre/
 .codex/
 .cursor/
 .claude/
+supabase/.temp/
 
 # Logs and local editor files
 *.log

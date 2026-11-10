@@ -29,6 +29,7 @@ export function StoreGroup({
       <button
         type="button"
         className={styles.groupHeader}
+        data-selected={selectedId === group.id || undefined}
         aria-label={`查看${name}门店`}
         onClick={() => onSelectGroup(group.id)}
       >

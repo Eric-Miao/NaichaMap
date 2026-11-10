@@ -83,6 +83,10 @@ export function StoreMap({
     () => fitMapView(points, size, { padding: 30, minZoom: 13.5, maxZoom: 16.8 }),
     [points, size],
   );
+  const selectedStore = useMemo(
+    () => groups.flatMap((group) => group.stores).find((store) => store.id === selectedId) ?? null,
+    [groups, selectedId],
+  );
 
   useEffect(() => {
     if (!activeStyle || !canvasRef.current) return;
@@ -174,6 +178,15 @@ export function StoreMap({
       map.jumpTo({ center: [fitView.center.lng, fitView.center.lat], zoom: fitView.zoom });
     }
   }, [activeStyle, fitView]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedStore || typeof map.easeTo !== "function") return;
+    map.easeTo({
+      center: [selectedStore.location.lng, selectedStore.location.lat],
+      duration: 450,
+    });
+  }, [activeStyle, selectedStore]);
 
   function resetMap() {
     if (!fitView) return;

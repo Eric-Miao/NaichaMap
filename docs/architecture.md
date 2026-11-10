@@ -97,7 +97,7 @@ type NearbyRepository = {
 - `MapShell` 是唯一布局壳：移动端 `header / map / drawer`，桌面端 `左目录 + 右地图`。
 - `StoreDrawer` 接收已计算好的 `DirectoryView`，不重复过滤。
 - 展示组件全部使用 CSS Modules，颜色/间距/半径只来自 `globals.css` 的 token。
-- 地图选店与列表选店共用一个 `selectStore`：展开目录、滚动到对应行、同步高亮。
+- 地图与列表共用 `selectedId`：点列表行会选中单店针并把地图居中、收起抽屉；点单店针会滚动并高亮列表行；点商场聚合针会展开目录并高亮分组头。
 - 纠错弹层自己管理焦点陷阱、Escape、滚动锁和焦点归还。
 
 ## 测试策略
